@@ -5,11 +5,16 @@ import linda.Linda;
 import linda.Tuple;
 
 import java.util.Collection;
+import java.util.ArrayList;
+import java.util.List;
 
 /** Shared memory implementation of Linda. */
 public class CentralizedLinda implements Linda {
+
+    private List<Tuple> tuples;
 	
     public CentralizedLinda() {
+        this.tuples = new ArrayList<Tuple>();
     }
 
     @Override
