@@ -27,8 +27,10 @@ public class CentralizedLinda implements Linda {
 
     @Override
     public void write(Tuple t) {
+        // Mutual exclusion for accessing stored tuples
         this.lock.lock();
         this.tuples.add(t);
+        // Signals waiting reads/takes that an new tuple has been received
         this.signaler.signal();
         this.lock.unlock();
     }
@@ -39,17 +41,23 @@ public class CentralizedLinda implements Linda {
         Tuple result;
 
         while (!found) {
+            // Mutual exclusion for iterating through stored tuples
             this.lock.lock();
             for (Tuple t : this.tuples) {
                 if (Tuple.matches(t, template)) {
-                    this.tuples.remove(t);
                     result = t;
+                    this.tuples.remove(t);
                     found = true;
+                    // We're returning the first match found
                     break;
                 }
             }
             this.lock.unlock();
+
             if (result == null) {
+                // If template not found, wait for another tuple to be added
+                // note: the lock must be released before this point if a new
+                // tuple is to be stored
                 this.signaler.await();
             }
         }
@@ -58,7 +66,30 @@ public class CentralizedLinda implements Linda {
 
     @Override
     public Tuple read(Tuple template) {
-        return null;
+        boolean found = false;
+        Tuple result;
+
+        while (!found) {
+            // Mutual exclusion for iterating through stored tuples
+            this.lock.lock();
+            for (Tuple t : this.tuples) {
+                if (Tuple.matches(t, template)) {
+                    result = t;
+                    found = true;
+                    // We're returning the first match found
+                    break;
+                }
+            }
+            this.lock.unlock();
+
+            if (result == null) {
+                // If template not found, wait for another tuple to be added
+                // note: the lock must be released before this point if a new
+                // tuple is to be stored
+                this.signaler.await();
+            }
+        }
+        return result;
     }
 
     @Override
