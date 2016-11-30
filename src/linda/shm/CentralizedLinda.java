@@ -18,7 +18,7 @@ public class CentralizedLinda implements Linda {
     private List<Tuple> tuples;
     private Lock lock;
     private Condition signaler;
-	
+
     public CentralizedLinda() {
         this.tuples = new ArrayList<Tuple>();
         this.lock = new ReentrantLock();
