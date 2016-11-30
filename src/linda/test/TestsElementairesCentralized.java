@@ -26,8 +26,8 @@ public class TestsElementairesCentralized {
     public void testWrite() {
         Tuple tupleWritten = new Tuple("coucou", 5, 3, false);
         linda.write(tupleWritten);
-        Tuple tupleRead = linda.tryRead(new Tuple(String.class, Integer.class, Integer
-                .class, Boolean.class));
+        Tuple tupleRead = linda.tryRead(new Tuple(String.class, Integer.class,
+                    Integer.class, Boolean.class));
         Assert.assertTrue(tupleRead.matches(tupleWritten));
 
         tupleWritten = new Tuple(new Tuple("shittyFlute", 3456), "troubalourds",
