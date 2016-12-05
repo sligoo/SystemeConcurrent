@@ -104,12 +104,37 @@ public class CentralizedLinda implements Linda {
 
     @Override
     public Tuple tryTake(Tuple template) {
-        return null;
+        Tuple result = null;
+
+        // Mutual exclusion for iterating through stored tuples
+        this.lock.lock();
+        for (Tuple t : this.tuples) {
+            if (t.matches(template)) {
+                result = t;
+                this.tuples.remove(t);
+                // We're returning the first match found
+                break;
+            }
+        }
+        this.lock.unlock();
+        return result;
     }
 
     @Override
     public Tuple tryRead(Tuple template) {
-        return null;
+        Tuple result = null;
+
+        // Mutual exclusion for iterating through stored tuples
+        this.lock.lock();
+        for (Tuple t : this.tuples) {
+            if (t.matches(template)) {
+                result = t;
+                // We're returning the first match found
+                break;
+            }
+        }
+        this.lock.unlock();
+        return result;
     }
 
     @Override
