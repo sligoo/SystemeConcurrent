@@ -22,7 +22,6 @@ public class CentralizedLinda implements Linda {
     public CentralizedLinda() {
         this.tuples = new ArrayList<Tuple>();
         this.lock = new ReentrantLock();
-        this.signaler = this.lock.newCondition();
     }
 
     @Override
@@ -31,7 +30,9 @@ public class CentralizedLinda implements Linda {
         this.lock.lock();
         this.tuples.add(t);
         // Signals waiting reads/takes that an new tuple has been received
-        this.signaler.signal();
+        synchronized (this) {
+            notifyAll();
+        }
         this.lock.unlock();
     }
 
@@ -59,7 +60,9 @@ public class CentralizedLinda implements Linda {
                 // note: the lock must be released before this point if a new
                 // tuple is to be stored
                 try {
-                    this.signaler.await();
+                    synchronized (this) {
+                        wait();
+                    }
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                     System.exit(1);
@@ -77,22 +80,27 @@ public class CentralizedLinda implements Linda {
         while (!found) {
             // Mutual exclusion for iterating through stored tuples
             this.lock.lock();
-            for (Tuple t : this.tuples) {
-                if (t.matches(template)) {
-                    result = t;
-                    found = true;
-                    // We're returning the first match found
-                    break;
+            try {
+                for (Tuple t : this.tuples) {
+                    if (t.matches(template)) {
+                        result = t;
+                        found = true;
+                        // We're returning the first match found
+                        break;
+                    }
                 }
+            } finally {
+                this.lock.unlock();
             }
-            this.lock.unlock();
 
             if (result == null) {
                 // If template not found, wait for another tuple to be added
                 // note: the lock must be released before this point if a new
                 // tuple is to be stored
                 try {
-                    this.signaler.await();
+                    synchronized (this) {
+                        wait();
+                    }
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                     System.exit(1);
