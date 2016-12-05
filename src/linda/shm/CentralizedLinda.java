@@ -38,13 +38,13 @@ public class CentralizedLinda implements Linda {
     @Override
     public Tuple take(Tuple template) {
         boolean found = false;
-        Tuple result;
+        Tuple result = null;
 
         while (!found) {
             // Mutual exclusion for iterating through stored tuples
             this.lock.lock();
             for (Tuple t : this.tuples) {
-                if (Tuple.matches(t, template)) {
+                if (t.matches(template)) {
                     result = t;
                     this.tuples.remove(t);
                     found = true;
@@ -58,7 +58,12 @@ public class CentralizedLinda implements Linda {
                 // If template not found, wait for another tuple to be added
                 // note: the lock must be released before this point if a new
                 // tuple is to be stored
-                this.signaler.await();
+                try {
+                    this.signaler.await();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                    System.exit(1);
+                }
             }
         }
         return result;
@@ -67,13 +72,13 @@ public class CentralizedLinda implements Linda {
     @Override
     public Tuple read(Tuple template) {
         boolean found = false;
-        Tuple result;
+        Tuple result = null;
 
         while (!found) {
             // Mutual exclusion for iterating through stored tuples
             this.lock.lock();
             for (Tuple t : this.tuples) {
-                if (Tuple.matches(t, template)) {
+                if (t.matches(template)) {
                     result = t;
                     found = true;
                     // We're returning the first match found
@@ -86,7 +91,12 @@ public class CentralizedLinda implements Linda {
                 // If template not found, wait for another tuple to be added
                 // note: the lock must be released before this point if a new
                 // tuple is to be stored
-                this.signaler.await();
+                try {
+                    this.signaler.await();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                    System.exit(1);
+                }
             }
         }
         return result;
