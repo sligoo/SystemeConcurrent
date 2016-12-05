@@ -5,6 +5,7 @@ import linda.Linda;
 import linda.Tuple;
 
 import java.util.Collection;
+import java.util.stream.Collectors;
 import java.util.ArrayList;
 import java.util.List;
 //import javax.management.lock.Monitor;
@@ -27,13 +28,16 @@ public class CentralizedLinda implements Linda {
     @Override
     public void write(Tuple t) {
         // Mutual exclusion for accessing stored tuples
-        this.lock.lock();
-        this.tuples.add(t);
-        // Signals waiting reads/takes that an new tuple has been received
-        synchronized (this) {
-            notifyAll();
+        try {
+            this.lock.lock();
+            this.tuples.add(t);
+            // Signals waiting reads/takes that an new tuple has been received
+            synchronized (this) {
+                notifyAll();
+            }
+        } finally {
+            this.lock.unlock();
         }
-        this.lock.unlock();
     }
 
     @Override
@@ -43,17 +47,20 @@ public class CentralizedLinda implements Linda {
 
         while (!found) {
             // Mutual exclusion for iterating through stored tuples
-            this.lock.lock();
-            for (Tuple t : this.tuples) {
-                if (t.matches(template)) {
-                    result = t;
-                    this.tuples.remove(t);
-                    found = true;
-                    // We're returning the first match found
-                    break;
+            try {
+                this.lock.lock();
+                for (Tuple t : this.tuples) {
+                    if (t.matches(template)) {
+                        result = t;
+                        this.tuples.remove(t);
+                        found = true;
+                        // We're returning the first match found
+                        break;
+                    }
                 }
+            } finally {
+                this.lock.unlock();
             }
-            this.lock.unlock();
 
             if (result == null) {
                 // If template not found, wait for another tuple to be added
@@ -115,16 +122,19 @@ public class CentralizedLinda implements Linda {
         Tuple result = null;
 
         // Mutual exclusion for iterating through stored tuples
-        this.lock.lock();
-        for (Tuple t : this.tuples) {
-            if (t.matches(template)) {
-                result = t;
-                this.tuples.remove(t);
-                // We're returning the first match found
-                break;
+        try {
+            this.lock.lock();
+            for (Tuple t : this.tuples) {
+                if (t.matches(template)) {
+                    result = t;
+                    this.tuples.remove(t);
+                    // We're returning the first match found
+                    break;
+                }
             }
+        } finally {
+            this.lock.unlock();
         }
-        this.lock.unlock();
         return result;
     }
 
@@ -133,33 +143,36 @@ public class CentralizedLinda implements Linda {
         Tuple result = null;
 
         // Mutual exclusion for iterating through stored tuples
-        this.lock.lock();
-        for (Tuple t : this.tuples) {
-            if (t.matches(template)) {
-                result = t;
-                // We're returning the first match found
-                break;
+        try {
+            this.lock.lock();
+            for (Tuple t : this.tuples) {
+                if (t.matches(template)) {
+                    result = t;
+                    // We're returning the first match found
+                    break;
+                }
             }
+        } finally {
+            this.lock.unlock();
         }
-        this.lock.unlock();
         return result;
     }
 
     @Override
     public Collection<Tuple> takeAll(Tuple template) {
         Collection<Tuple> result = new ArrayList<Tuple>();
-        boolean found = true;
 
-        while (found) {
         // Mutual exclusion for iterating through stored tuples
-        this.lock.lock();
-        for (Tuple t : this.tuples) {
-            if (t.matches(template)) {
-                result.add(t);
-                this.tuples.remove(t);
-            }
-        }
-        this.lock.unlock();
+        try {
+            this.lock.lock();
+            // Get all tuples matching the template
+            result = this.tuples.stream()
+                .filter(t -> t.matches(template))
+                .collect(Collectors.toList());
+            // Remove the collected tuples from ones stored
+            this.tuples.removeAll(result);
+        } finally {
+            this.lock.unlock();
         }
 
         return result;
@@ -167,7 +180,20 @@ public class CentralizedLinda implements Linda {
 
     @Override
     public Collection<Tuple> readAll(Tuple template) {
-        return null;
+        Collection<Tuple> result = new ArrayList<Tuple>();
+
+        // Mutual exclusion for iterating through stored tuples
+        try {
+            this.lock.lock();
+            // Get all tuples matching the template
+            result = this.tuples.stream()
+                .filter(t -> t.matches(template))
+                .collect(Collectors.toList());
+        } finally {
+            this.lock.unlock();
+        }
+
+        return result;
     }
 
     @Override
