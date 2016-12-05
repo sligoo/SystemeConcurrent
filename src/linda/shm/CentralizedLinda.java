@@ -22,7 +22,6 @@ public class CentralizedLinda implements Linda {
     public CentralizedLinda() {
         this.tuples = new ArrayList<Tuple>();
         this.lock = new ReentrantLock();
-        this.signaler = this.lock.newCondition();
     }
 
     @Override
@@ -31,20 +30,22 @@ public class CentralizedLinda implements Linda {
         this.lock.lock();
         this.tuples.add(t);
         // Signals waiting reads/takes that an new tuple has been received
-        this.signaler.signal();
+        synchronized (this) {
+            notifyAll();
+        }
         this.lock.unlock();
     }
 
     @Override
     public Tuple take(Tuple template) {
         boolean found = false;
-        Tuple result;
+        Tuple result = null;
 
         while (!found) {
             // Mutual exclusion for iterating through stored tuples
             this.lock.lock();
             for (Tuple t : this.tuples) {
-                if (Tuple.matches(t, template)) {
+                if (t.matches(template)) {
                     result = t;
                     this.tuples.remove(t);
                     found = true;
@@ -58,7 +59,14 @@ public class CentralizedLinda implements Linda {
                 // If template not found, wait for another tuple to be added
                 // note: the lock must be released before this point if a new
                 // tuple is to be stored
-                this.signaler.await();
+                try {
+                    synchronized (this) {
+                        wait();
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                    System.exit(1);
+                }
             }
         }
         return result;
@@ -67,26 +75,36 @@ public class CentralizedLinda implements Linda {
     @Override
     public Tuple read(Tuple template) {
         boolean found = false;
-        Tuple result;
+        Tuple result = null;
 
         while (!found) {
             // Mutual exclusion for iterating through stored tuples
             this.lock.lock();
-            for (Tuple t : this.tuples) {
-                if (Tuple.matches(t, template)) {
-                    result = t;
-                    found = true;
-                    // We're returning the first match found
-                    break;
+            try {
+                for (Tuple t : this.tuples) {
+                    if (t.matches(template)) {
+                        result = t;
+                        found = true;
+                        // We're returning the first match found
+                        break;
+                    }
                 }
+            } finally {
+                this.lock.unlock();
             }
-            this.lock.unlock();
 
             if (result == null) {
                 // If template not found, wait for another tuple to be added
                 // note: the lock must be released before this point if a new
                 // tuple is to be stored
-                this.signaler.await();
+                try {
+                    synchronized (this) {
+                        wait();
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                    System.exit(1);
+                }
             }
         }
         return result;
@@ -94,17 +112,57 @@ public class CentralizedLinda implements Linda {
 
     @Override
     public Tuple tryTake(Tuple template) {
-        return null;
+        Tuple result = null;
+
+        // Mutual exclusion for iterating through stored tuples
+        this.lock.lock();
+        for (Tuple t : this.tuples) {
+            if (t.matches(template)) {
+                result = t;
+                this.tuples.remove(t);
+                // We're returning the first match found
+                break;
+            }
+        }
+        this.lock.unlock();
+        return result;
     }
 
     @Override
     public Tuple tryRead(Tuple template) {
-        return null;
+        Tuple result = null;
+
+        // Mutual exclusion for iterating through stored tuples
+        this.lock.lock();
+        for (Tuple t : this.tuples) {
+            if (t.matches(template)) {
+                result = t;
+                // We're returning the first match found
+                break;
+            }
+        }
+        this.lock.unlock();
+        return result;
     }
 
     @Override
     public Collection<Tuple> takeAll(Tuple template) {
-        return null;
+        Collection<Tuple> result = new ArrayList<Tuple>();
+        boolean found = true;
+
+        while (found) {
+        // Mutual exclusion for iterating through stored tuples
+        this.lock.lock();
+        for (Tuple t : this.tuples) {
+            if (t.matches(template)) {
+                result.add(t);
+                this.tuples.remove(t);
+            }
+        }
+        this.lock.unlock();
+        }
+
+        return result;
     }
 
     @Override
