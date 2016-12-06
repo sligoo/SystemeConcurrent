@@ -1,5 +1,6 @@
 package linda.test;
 
+import linda.AsynchronousCallback;
 import linda.Linda;
 import linda.Tuple;
 import linda.shm.CentralizedLinda;
@@ -20,6 +21,7 @@ import static org.junit.Assert.assertTrue;
 public class TestsElementairesCentralized {
 
   private Linda linda;
+  private int readImmediate, takeImmediate, readFuture, takeFuture;
 
   @Before
   public void initialize() {
@@ -79,9 +81,10 @@ public class TestsElementairesCentralized {
   public void testRead(){
     Tuple tupleWritten = new Tuple(42);
     linda.write(tupleWritten);
-    assertTrue("Read a value tuple template", linda.read(new Tuple(42)).matches(tupleWritten));
-    assertTrue("After a read, tuple is as before", linda.tryRead(tupleWritten)
-            .matches(tupleWritten));
+    assertTrue("Read a value tuple template",
+            linda.read(new Tuple(42)).matches(tupleWritten));
+    assertTrue("After a read, tuple is as before",
+            linda.tryRead(tupleWritten).matches(tupleWritten));
   }
 
   @Test
@@ -223,6 +226,184 @@ public class TestsElementairesCentralized {
 
     Assert.assertTrue("The collection should be empty",
             linda.takeAll(new Tuple(Object.class)).isEmpty());
+  }
+
+  @Test(timeout = 5000)
+  public void testReadTakeSynchronized() {
+    Tuple template1 = new Tuple(Integer.class, Integer.class, String.class, Boolean.class);
+    Tuple test1 = new Tuple(683, 94763, "coucou", true);
+    Tuple template2 = new Tuple(Tuple.class, String.class);
+    Tuple test2 = new Tuple(new Tuple(4683, 98734), "chaine");
+
+    new Thread(() -> {
+      Tuple tuples[] = new Tuple[] {
+              new Tuple(573, "lala"),
+              test1,
+              new Tuple(false),
+              new Tuple(4673, new Tuple(false, true))
+      };
+      try {
+        Thread.sleep(1000);
+
+        for (Tuple tuple : tuples) {
+          linda.write(tuple);
+        }
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+    }).start();
+
+    Tuple tupleRead = linda.read(template1);
+    Assert.assertTrue("The tuple read should match 683|94763|'coucou'|true", tupleRead.matches(test1));
+
+    new Thread(() -> {
+      Tuple tuples[] = new Tuple[] {
+              new Tuple(794873, "lala"),
+              test2,
+              new Tuple(false),
+              new Tuple(false, new Tuple(342, true))
+      };
+      try {
+        Thread.sleep(1500);
+
+        for (Tuple tuple : tuples) {
+          linda.write(tuple);
+        }
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+    }).start();
+
+    Tuple tupleTaken = linda.take(template2);
+    Assert.assertTrue("The tuple taken should match (4683|98734)|'chaine'", tupleTaken.matches(test2));
+  }
+
+  @Test
+  public void testEvents() {
+    int expectedReadImmediate = 3, expectedTakeImmediate = 2, expectedReadFuture = 1, expectedTakeFuture = 1;
+
+    readImmediate = 0;
+    takeImmediate = 0;
+    readFuture = 0;
+    takeFuture = 0;
+
+    Tuple tuplesImmediate[] = new Tuple[] {
+            new Tuple(345, 762, "coucou", true),
+            new Tuple(53782, 65442, "allo", "test"),
+            new Tuple(345, 762, 7863853, false),
+            new Tuple(53782, 65442, new ArrayList<>(), true),
+            new Tuple(345, "test", "coucou", true),
+            new Tuple("allo", 65442, "coucou", true)
+    };
+
+    for (Tuple tuple : tuplesImmediate) {
+      linda.write(tuple);
+    }
+
+    // Tests for Immediate/Read
+    for (int i = 0; i < 2; i++) {
+      linda.eventRegister(Linda.eventMode.READ, Linda.eventTiming.IMMEDIATE,
+              new Tuple(Integer.class, Integer.class, String.class, Boolean.class),
+              new AsynchronousCallback(t -> {
+                if (t.matches(tuplesImmediate[0])) {
+                  readImmediate++;
+                }
+              })
+      );
+    }
+
+    Tuple tupleImmediateRead = new Tuple(345, 762, "coucou", 43722);
+    linda.eventRegister(Linda.eventMode.READ, Linda.eventTiming.IMMEDIATE,
+            new Tuple(Integer.class, Integer.class, String.class, Integer.class),
+            new AsynchronousCallback(t -> {
+              if (t.matches(tupleImmediateRead)) {
+                readImmediate++;
+              }
+            })
+    );
+    try {
+      Thread.sleep(500);
+      linda.write(tupleImmediateRead);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+
+    // Tests for Immediate/Take
+    for (int i = 0; i < 2; i++) {
+      linda.eventRegister(Linda.eventMode.TAKE, Linda.eventTiming.IMMEDIATE,
+              new Tuple(Integer.class, Integer.class, String.class, String.class),
+              new AsynchronousCallback(t -> {
+                if (t.matches(tuplesImmediate[1])) {
+                  takeImmediate++;
+                }
+              })
+      );
+    }
+
+    Tuple tupleImmediateWrite = new Tuple(345, 762, 43722);
+    linda.eventRegister(Linda.eventMode.READ, Linda.eventTiming.IMMEDIATE,
+            new Tuple(Integer.class, Integer.class, Integer.class),
+            new AsynchronousCallback(t -> {
+              if (t.matches(tupleImmediateWrite)) {
+                takeImmediate++;
+              }
+            })
+    );
+    try {
+      Thread.sleep(500);
+      linda.write(tupleImmediateRead);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+
+    // Tests for Future/Read
+    Tuple tupleFutureRead = new Tuple(345, 9543, "coucou", true);
+    linda.eventRegister(Linda.eventMode.READ, Linda.eventTiming.FUTURE,
+            new Tuple(Integer.class, Integer.class, String.class, Boolean.class),
+            new AsynchronousCallback(t -> {
+              if (t.matches(tupleFutureRead)) {
+                readFuture++;
+              }
+            })
+    );
+    try {
+      Thread.sleep(500);
+      linda.write(tupleFutureRead);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+    Assert.assertNotNull("Event for Future/Read shouldn't destroy the tuple",
+            linda.tryRead(tupleFutureRead));
+
+    // Tests for Future/Take
+    Tuple tupleFutureTake = new Tuple(34543, 76322, 7853, true);
+    linda.eventRegister(Linda.eventMode.TAKE, Linda.eventTiming.FUTURE,
+            new Tuple(Integer.class, Integer.class, Integer.class, Boolean.class),
+            new AsynchronousCallback(t -> {
+              if (t.matches(tupleFutureTake)) {
+                takeFuture++;
+              }
+            })
+    );
+    try {
+      Thread.sleep(500);
+      linda.write(tupleFutureTake);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+    Assert.assertNull("Event for Future/Take should destroy the tuple", linda.tryRead(tupleFutureRead));
+
+    // Checks
+    try {
+      Thread.sleep(1000);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+
+    Assert.assertEquals("Immediate/Read is not working correctly", expectedReadImmediate, readImmediate);
+    Assert.assertEquals("Immediate/Take is not working correctly", expectedTakeImmediate, takeImmediate);
+    Assert.assertEquals("Future/Read is not working correctly", expectedReadFuture, readFuture);
+    Assert.assertEquals("Future/Take is not working correctly", expectedTakeFuture, takeFuture);
   }
 
 }
