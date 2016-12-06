@@ -53,13 +53,13 @@ public class TestsElementairesCentralized {
 
     tupleRead = linda.tryRead(new Tuple(new Tuple(String.class, Integer.class), String.class,
             String.class, Boolean.class));
-    Assert.assertNull("TryRead() shouldn't have made the tuple disappear", tupleRead);
+    Assert.assertTrue("TryRead() shouldn't have made the tuple disappear", tupleRead.matches(tupleWritten));
 
     Assert.assertNull("Read tuple should be null", linda.tryRead(new Tuple(Integer.class)));
 
-    Tuple tupleWrite = new Tuple(new Tuple("fluteShitty", 3564), "troubalourds",
+    tupleWritten = new Tuple(new Tuple("fluteShitty", 3564), "troubalourds",
             "japan7", false);
-    linda.write(tupleWrite);
+    linda.write(tupleWritten);
     tupleRead = linda.tryRead(new Tuple(Tuple.class, "troubalourds", "japan7", false));
     if (tupleRead != null)
       Assert.assertTrue("Read tuple should match ['fluteShitty'|3564]|'troubalourds'|'japan7'|false",
@@ -88,28 +88,36 @@ public class TestsElementairesCentralized {
   }
 
   @Test
-  public void testTakeLock() throws InterruptedException {
+  public void testTakeLock() {
     Tuple tupleWritten = new Tuple("empty");
     linda.write(tupleWritten);
     Thread mainRunner = new Thread(() -> linda.take(new Tuple(5)));
 
     mainRunner.start();
 
-    Thread.sleep(1000);
+    try {
+      Thread.sleep(1000);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
 
     assertEquals(Thread.State.WAITING, mainRunner.getState());
     mainRunner.interrupt();
   }
 
   @Test
-  public void testReadLock() throws InterruptedException {
+  public void testReadLock() {
     Tuple tupleWritten = new Tuple("empty");
     linda.write(tupleWritten);
     Thread mainRunner = new Thread(() -> linda.read(new Tuple(5)));
 
     mainRunner.start();
 
-    Thread.sleep(1000);
+    try {
+      Thread.sleep(1000);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
 
     assertEquals(Thread.State.WAITING, mainRunner.getState());
     mainRunner.interrupt();
@@ -187,11 +195,11 @@ public class TestsElementairesCentralized {
 
     Tuple match = new Tuple(Integer.class, Integer.class, Object.class, Boolean.class);
     Collection<Tuple> read2 = linda.readAll(match);
-    Assert.assertEquals("4 tuples should have been read", 2, read2.size());
+    Assert.assertEquals("4 tuples should have been read", 4, read2.size());
     Assert.assertTrue("The collection should contain tuples[0]", read2.contains(tuples[0]));
+    Assert.assertTrue("The collection should contain tuples[2]", read2.contains(tuples[2]));
     Assert.assertTrue("The collection should contain tuples[3]", read2.contains(tuples[3]));
     Assert.assertTrue("The collection should contain tuples[4]", read2.contains(tuples[4]));
-    Assert.assertTrue("The collection should contain tuples[5]", read2.contains(tuples[5]));
 
     Assert.assertTrue("The collection should be empty",
             linda.readAll(new Tuple(Object.class)).isEmpty());
@@ -221,8 +229,8 @@ public class TestsElementairesCentralized {
     Tuple match = new Tuple(Integer.class, Integer.class, Object.class, Boolean.class);
     Collection<Tuple> read2 = linda.takeAll(match);
     Assert.assertEquals("4 tuples should have been read", 2, read2.size());
-    Assert.assertTrue("The collection should contain tuples[3]", read2.contains(tuples[3]));
-    Assert.assertTrue("The collection should contain tuples[4]", read2.contains(tuples[4]));
+    Assert.assertTrue("The collection should contain tuples[3]", read2.contains(tuples[2]));
+    Assert.assertTrue("The collection should contain tuples[4]", read2.contains(tuples[3]));
 
     Assert.assertTrue("The collection should be empty",
             linda.takeAll(new Tuple(Object.class)).isEmpty());
