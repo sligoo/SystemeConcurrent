@@ -8,6 +8,8 @@ import java.util.Collection;
 import java.util.stream.Collectors;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 //import javax.management.lock.Monitor;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.Lock;
@@ -19,10 +21,12 @@ public class CentralizedLinda implements Linda {
     private List<Tuple> tuples;
     private Lock lock;
     private Condition signaler;
+    private List<CallbackRef> callbacks;
 
     public CentralizedLinda() {
         this.tuples = new ArrayList<Tuple>();
         this.lock = new ReentrantLock();
+        this.callbacks = new ArrayList<CallbackRef>();
     }
 
     @Override
@@ -196,8 +200,36 @@ public class CentralizedLinda implements Linda {
         return result;
     }
 
+    private class CallbackRef {
+        private eventMode mode;
+        private eventTiming timing;
+        private Tuple template;
+        private Callback callback;
+
+        private CallbackRef(eventMode em, eventTiming et, Tuple t, Callback c) {
+            this.mode = em;
+            this.timing = et;
+            this.template = t;
+            this.callback = c;
+        }
+
+        private eventMode getMode() {
+            return this.mode;
+        }
+        private eventTiming getTiming() {
+            return this.timing;
+        }
+        private Tuple getTemplate() {
+            return this.template;
+        }
+        private Callback getCallback() {
+            return this.callback;
+        }
+    }
+
     @Override
-    public void eventRegister(eventMode mode, eventTiming timing, Tuple template, Callback callback) {
+    public void eventRegister(eventMode mode, eventTiming timing, Tuple template,
+            Callback callback) {
 
     }
 
