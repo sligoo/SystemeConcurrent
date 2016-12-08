@@ -1,0 +1,55 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[frenchb]{babel}
+
+\begin{document}
+
+\begin{titlepage}
+\begin{center}
+
+{\large ENSEEIHT}\\[0.5cm]
+
+{\large 2A IMA}\\[0.5cm]
+
+\rule{\linewidth}{0.5mm} \\[0.4cm]
+{ \huge \bfseries Systèmes concurrents, première partie, groupe A \\[0.4cm] }
+\rule{\linewidth}{0.5mm} \\[1.5cm]
+
+\noindent
+\begin{minipage}{0.4\textwidth}
+  \begin{flushleft} \large
+    \emph{Auteurs :}\\
+    Lucien \textsc{Haurat}\\
+    Noah \textsc{Jay}
+  \end{flushleft}
+\end{minipage}%
+
+\vfill
+
+{\large \today}
+
+\end{center}
+\end{titlepage}
+
+
+\clearpage
+\tableofcontents
+\newpage
+
+\section{Principe}
+La classe \texttt{CentralizedLinda} est assez simple, elle contient deux listes, et deux \texttt{ReentrantLock}, une pour chaque liste. A chaque fois que le programme a besoin d'utiliser, en lecture ou en écriture, une des listes, la fonction récupère le verrou avant.
+
+La première liste est la liste des tuples stockés.
+La seconde liste est une liste de \texttt{CallbackRef}, qui stocke un \texttt{Callback}, son timing, et son action.
+
+\section{Plus de détails}
+Pour une fonction bloquante de lecture (\texttt{take} ou \texttt{read}), le thread est mis en attente grâce a l'appel de la fonction \texttt{wait}. Lors d'un appel à la fonction \texttt{write}, on notifie tous les threads en attente de lecture, pour qu'ils terminent, si le tuple ajouté correspond à leur template.
+A chaque appel à \texttt{read} ou à \texttt{write}, on crée une copie profonde du tuple, afin de ne pas stocker l'objet passé en paramètre, mais une copie de celui-ci.
+
+De plus, lors d'un appel à \texttt{write}, on appelle la fonciton \texttt{checkCallbacks}, qui parcourt toutes les opérations en attente, et leur transmet le tuple écrit s'il correspond à ce qu'ils attendent.
+Ceci permet de prendre en compte les callbacks de type \texttt{FUTURE}, et ceux du type \texttt{IMMEDIATE} qui sont en attente.
+Les callbacks de type \texttt{IMMEDIATE} sont eux traités quand on enregistre un callback avec la méthode \texttt{eventRegister}, et sont mis en attente si on ne trouve pas de tuple qui correspond au template fourni.
+
+\end{document}
+
