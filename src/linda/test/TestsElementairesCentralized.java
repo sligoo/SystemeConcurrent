@@ -399,7 +399,8 @@ public class TestsElementairesCentralized {
     } catch (InterruptedException e) {
       e.printStackTrace();
     }
-    Assert.assertNull("Event for Future/Take should destroy the tuple", linda.tryRead(tupleFutureRead));
+    Assert.assertNull("Event for Future/Take should destroy the tuple",
+            linda.tryRead(tupleFutureRead));
 
     // Checks
     try {
@@ -408,10 +409,14 @@ public class TestsElementairesCentralized {
       e.printStackTrace();
     }
 
-    Assert.assertEquals("Immediate/Read is not working correctly", expectedReadImmediate, readImmediate);
-    Assert.assertEquals("Immediate/Take is not working correctly", expectedTakeImmediate, takeImmediate);
-    Assert.assertEquals("Future/Read is not working correctly", expectedReadFuture, readFuture);
-    Assert.assertEquals("Future/Take is not working correctly", expectedTakeFuture, takeFuture);
+    Assert.assertEquals("Immediate/Read is not working correctly",
+            expectedReadImmediate, readImmediate);
+    Assert.assertEquals("Immediate/Take is not working correctly",
+            expectedTakeImmediate, takeImmediate);
+    Assert.assertEquals("Future/Read is not working correctly",
+            expectedReadFuture, readFuture);
+    Assert.assertEquals("Future/Take is not working correctly",
+            expectedTakeFuture, takeFuture);
   }
 
 }
