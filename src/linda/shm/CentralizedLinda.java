@@ -34,7 +34,8 @@ public class CentralizedLinda implements Linda {
         // Mutual exclusion for accessing stored tuples
         try {
             this.lock.lock();
-            this.tuples.add(t);
+            Tuple tuple = t.deepclone();
+            this.tuples.add(tuple);
             // Signals waiting reads/takes that an new tuple has been received
             synchronized (this) {
                 notifyAll();
@@ -231,7 +232,7 @@ public class CentralizedLinda implements Linda {
     }
 
     @Override
-    public void eventRegister(eventMode mode, eventTiming timing, Tuple template,
+    public synchronized void eventRegister(eventMode mode, eventTiming timing, Tuple template,
             Callback callback) {
         CallbackRef newRef = new CallbackRef(mode, timing, template, callback);
         this.callbacks.add(newRef);
@@ -266,12 +267,17 @@ public class CentralizedLinda implements Linda {
     private void checkCallback(CallbackRef c) {
         Tuple template = c.getTemplate();
 
-        for (Tuple t : this.tuples) {
-            if (template.matches(t)) {
-                c.getCallback().call(t);
-                this.callbacks.remove(c);
-                break;
+        try {
+            this.lock.lock();
+            for (Tuple t : this.tuples) {
+                if (template.matches(t)) {
+                    c.getCallback().call(t);
+                    this.callbacks.remove(c);
+                    break;
+                }
             }
+        } finally {
+            this.lock.unlock();
         }
     }
 
