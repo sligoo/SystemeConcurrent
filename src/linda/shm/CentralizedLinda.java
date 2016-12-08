@@ -288,6 +288,10 @@ public class CentralizedLinda implements Linda {
         }
     }
 
+    /** Prints the current tuple list and the callbacks list
+     *  after printing prefix
+     * @param prefix String
+     */
     @Override
     public void debug(String prefix) {
         System.out.println(prefix + " Tuples : [ ");
