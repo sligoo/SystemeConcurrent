@@ -79,8 +79,6 @@ public class CentralizedLinda implements Linda {
                         wait();
                     }
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
-                    System.exit(1);
                 }
             }
         }
@@ -117,8 +115,6 @@ public class CentralizedLinda implements Linda {
                         wait();
                     }
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
-                    System.exit(1);
                 }
             }
         }
