@@ -98,7 +98,7 @@ public class CentralizedLinda implements Linda {
             try {
                 for (Tuple t : this.tuples) {
                     if (t.matches(template)) {
-                        result = t;
+                        result = t.deepclone();
                         found = true;
                         // We're returning the first match found
                         break;
