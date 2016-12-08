@@ -384,9 +384,9 @@ public class TestsElementairesCentralized {
             linda.tryRead(tupleFutureRead));
 
     // Tests for Future/Take
-    Tuple tupleFutureTake = new Tuple(34543, 76322, 7853, true);
+    Tuple tupleFutureTake = new Tuple(34543, 76322, 7853, false, true);
     linda.eventRegister(Linda.eventMode.TAKE, Linda.eventTiming.FUTURE,
-            new Tuple(Integer.class, Integer.class, Integer.class, Boolean.class),
+            new Tuple(Integer.class, Integer.class, Integer.class, Boolean.class, Boolean.class),
             new AsynchronousCallback(t -> {
               if (t.matches(tupleFutureTake)) {
                 takeFuture++;
@@ -399,8 +399,7 @@ public class TestsElementairesCentralized {
     } catch (InterruptedException e) {
       e.printStackTrace();
     }
-    Assert.assertNull("Event for Future/Take should destroy the tuple",
-            linda.tryRead(tupleFutureRead));
+    Assert.assertNull("Event for Future/Take should destroy the tuple", linda.tryRead(tupleFutureTake));
 
     // Checks
     try {
@@ -419,4 +418,7 @@ public class TestsElementairesCentralized {
             expectedTakeFuture, takeFuture);
   }
 
+  public static void main(String[] args) {
+    org.junit.runner.JUnitCore.main(TestsElementairesCentralized.class.getName());
+  }
 }

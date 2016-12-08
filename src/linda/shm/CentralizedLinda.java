@@ -19,21 +19,22 @@ import java.util.concurrent.locks.Condition;
 public class CentralizedLinda implements Linda {
 
     private List<Tuple> tuples;
-    private Lock lock;
-    private Condition signaler;
+    private Lock tuplesLock;
+    private Lock callbacksLock;
     private List<CallbackRef> callbacks;
 
     public CentralizedLinda() {
         this.tuples = new ArrayList<Tuple>();
-        this.lock = new ReentrantLock();
+        this.tuplesLock = new ReentrantLock();
         this.callbacks = new ArrayList<CallbackRef>();
+        this.callbacksLock = new ReentrantLock();
     }
 
     @Override
     public void write(Tuple t) {
         // Mutual exclusion for accessing stored tuples
         try {
-            this.lock.lock();
+            this.tuplesLock.lock();
             Tuple tuple = t.deepclone();
             this.tuples.add(tuple);
             // Signals waiting reads/takes that an new tuple has been received
@@ -41,7 +42,7 @@ public class CentralizedLinda implements Linda {
                 notifyAll();
             }
         } finally {
-            this.lock.unlock();
+            this.tuplesLock.unlock();
         }
 
         // Check registered callbacks to call any valid ones
@@ -56,7 +57,7 @@ public class CentralizedLinda implements Linda {
         while (!found) {
             // Mutual exclusion for iterating through stored tuples
             try {
-                this.lock.lock();
+                this.tuplesLock.lock();
                 for (Tuple t : this.tuples) {
                     if (t.matches(template)) {
                         result = t;
@@ -67,7 +68,7 @@ public class CentralizedLinda implements Linda {
                     }
                 }
             } finally {
-                this.lock.unlock();
+                this.tuplesLock.unlock();
             }
 
             if (result == null) {
@@ -92,7 +93,7 @@ public class CentralizedLinda implements Linda {
 
         while (!found) {
             // Mutual exclusion for iterating through stored tuples
-            this.lock.lock();
+            this.tuplesLock.lock();
             try {
                 for (Tuple t : this.tuples) {
                     if (t.matches(template)) {
@@ -103,7 +104,7 @@ public class CentralizedLinda implements Linda {
                     }
                 }
             } finally {
-                this.lock.unlock();
+                this.tuplesLock.unlock();
             }
 
             if (result == null) {
@@ -127,7 +128,7 @@ public class CentralizedLinda implements Linda {
 
         // Mutual exclusion for iterating through stored tuples
         try {
-            this.lock.lock();
+            this.tuplesLock.lock();
             for (Tuple t : this.tuples) {
                 if (t.matches(template)) {
                     result = t;
@@ -137,7 +138,7 @@ public class CentralizedLinda implements Linda {
                 }
             }
         } finally {
-            this.lock.unlock();
+            this.tuplesLock.unlock();
         }
         return result;
     }
@@ -148,7 +149,7 @@ public class CentralizedLinda implements Linda {
 
         // Mutual exclusion for iterating through stored tuples
         try {
-            this.lock.lock();
+            this.tuplesLock.lock();
             for (Tuple t : this.tuples) {
                 if (t.matches(template)) {
                     result = t;
@@ -157,7 +158,7 @@ public class CentralizedLinda implements Linda {
                 }
             }
         } finally {
-            this.lock.unlock();
+            this.tuplesLock.unlock();
         }
         return result;
     }
@@ -168,15 +169,15 @@ public class CentralizedLinda implements Linda {
 
         // Mutual exclusion for iterating through stored tuples
         try {
-            this.lock.lock();
+            this.tuplesLock.lock();
             // Get all tuples matching the template
             result = this.tuples.stream()
-                .filter(t -> t.matches(template))
-                .collect(Collectors.toList());
+                    .filter(t -> t.matches(template))
+                    .collect(Collectors.toList());
             // Remove the collected tuples from ones stored
             this.tuples.removeAll(result);
         } finally {
-            this.lock.unlock();
+            this.tuplesLock.unlock();
         }
 
         return result;
@@ -188,13 +189,13 @@ public class CentralizedLinda implements Linda {
 
         // Mutual exclusion for iterating through stored tuples
         try {
-            this.lock.lock();
+            this.tuplesLock.lock();
             // Get all tuples matching the template
             result = this.tuples.stream()
-                .filter(t -> t.matches(template))
-                .collect(Collectors.toList());
+                    .filter(t -> t.matches(template))
+                    .collect(Collectors.toList());
         } finally {
-            this.lock.unlock();
+            this.tuplesLock.unlock();
         }
 
         return result;
@@ -229,7 +230,7 @@ public class CentralizedLinda implements Linda {
 
     @Override
     public synchronized void eventRegister(eventMode mode, eventTiming timing, Tuple template,
-            Callback callback) {
+                                           Callback callback) {
         CallbackRef newRef = new CallbackRef(mode, timing, template, callback);
         this.callbacks.add(newRef);
 
@@ -245,23 +246,23 @@ public class CentralizedLinda implements Linda {
      * @param t Tuple
      */
     private void checkCallbacks(Tuple t) {
-        List<CallbackRef> registered = this.callbacks.stream()
-                                .filter(c -> c.getTemplate().matches(t))
-                                .collect(Collectors.toList());
 
-        for (CallbackRef c : registered) {
-            c.getCallback().call(t);
+        try {
+            this.callbacksLock.lock();
+            List<CallbackRef> registered = this.callbacks.stream()
+                    .filter(c -> c.getTemplate().contains(t))
+                    .collect(Collectors.toList());
+            for (CallbackRef c : registered) {
+                c.getCallback().call(t);
 
-            if (c.getMode() == eventMode.TAKE) {
-                try {
-                    this.lock.lock();
-                    this.tuples.remove(t);
-                } finally {
-                    this.lock.unlock();
+                if (c.getMode() == eventMode.TAKE) {
+                    this.tryTake(t);
                 }
-            }
 
-            this.callbacks.remove(c);
+                this.callbacks.remove(c);
+            }
+        } finally {
+            this.callbacksLock.unlock();
         }
     }
 
@@ -274,24 +275,53 @@ public class CentralizedLinda implements Linda {
         Tuple template = c.getTemplate();
 
         try {
-            this.lock.lock();
+            this.tuplesLock.lock();
             for (Tuple t : this.tuples) {
-                if (template.matches(t)) {
+                if (t.matches(template)) {
                     c.getCallback().call(t);
                     this.callbacks.remove(c);
                     break;
                 }
             }
         } finally {
-            this.lock.unlock();
+            this.tuplesLock.unlock();
         }
     }
 
     @Override
     public void debug(String prefix) {
-
+        System.out.println(prefix + " Tuples : [ ");
+        try {
+            this.tuplesLock.lock();
+            for (Tuple t : this.tuples) {
+                System.out.println("        " + t + ",");
+            }
+        } finally {
+            this.tuplesLock.unlock();
+        }
+        System.out.println("    ]" + " ; Callbacks [");
+        try {
+            this.callbacksLock.lock();
+            for (CallbackRef c : this.callbacks) {
+                System.out.print("        ");
+                if (c.getTiming() == eventTiming.FUTURE) {
+                    System.out.print("FUTURE");
+                } else {
+                    System.out.print("IMMEDIATE");
+                }
+                System.out.print(" / ");
+                if (c.getMode() == eventMode.READ) {
+                    System.out.print("READ");
+                } else {
+                    System.out.print("TAKE");
+                }
+                System.out.print(" : ");
+                System.out.print(c.getTemplate());
+                System.out.println(",");
+            }
+            System.out.println("    ]");
+        } finally {
+            this.callbacksLock.unlock();
+        }
     }
-
-    // TO BE COMPLETED
-
 }
