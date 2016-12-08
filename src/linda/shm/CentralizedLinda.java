@@ -253,8 +253,10 @@ public class CentralizedLinda implements Linda {
             c.getCallback().call(t);
 
             if (c.getMode() == eventMode.TAKE) {
-                this.callbacks.remove(c);
+                this.tuples.remove(t);
             }
+
+            this.callbacks.remove(c);
         }
     }
 
