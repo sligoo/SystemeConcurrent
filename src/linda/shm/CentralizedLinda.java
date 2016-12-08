@@ -42,6 +42,9 @@ public class CentralizedLinda implements Linda {
         } finally {
             this.lock.unlock();
         }
+
+        // Check registered callbacks to call any valid ones
+        this.checkCallbacks(t);
     }
 
     @Override
@@ -230,7 +233,33 @@ public class CentralizedLinda implements Linda {
     @Override
     public void eventRegister(eventMode mode, eventTiming timing, Tuple template,
             Callback callback) {
+        CallbackRef newRef = new CallbackRef(mode, timing, template, callback);
+        this.callbacks.add(newRef);
 
+        if (timing == eventTiming.IMMEDIATE) {
+            this.checkCallback(newRef);
+        }
+
+    }
+
+    /** Executes all callbacks registered to the given template
+     * @param t Tuple
+     */
+    private void checkCallbacks(Tuple t) {
+        List<CallbackRef> registered = this.callbacks.stream()
+                                .filter(c -> c.getTemplate().matches(t))
+                                .collect(Collectors.toList());
+
+        for (CallbackRef c : registered) {
+            c.getCallback().call(t);
+            this.callbacks.remove(c);
+        }
+    }
+
+    /** Checks if the given callback should already be called
+     * @param c CallbackRef
+     */
+    private void checkCallback(CallbackRef c) {
     }
 
     @Override
