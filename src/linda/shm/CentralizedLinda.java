@@ -236,7 +236,9 @@ public class CentralizedLinda implements Linda {
         CallbackRef newRef = new CallbackRef(mode, timing, template, callback);
         this.callbacks.add(newRef);
 
+        // Check if the callback should be called immediately
         if (timing == eventTiming.IMMEDIATE) {
+            // If so, call it & remove it from the waiting list
             this.checkCallback(newRef);
         }
 
@@ -258,8 +260,19 @@ public class CentralizedLinda implements Linda {
 
     /** Checks if the given callback should already be called
      * @param c CallbackRef
+     *
+     * If it should, call it then remove it from the waiting list
      */
     private void checkCallback(CallbackRef c) {
+        Tuple template = c.getTemplate();
+
+        for (Tuple t : this.tuples) {
+            if (template.matches(t)) {
+                c.getCallback().call(t);
+                this.callbacks.remove(c);
+                break;
+            }
+        }
     }
 
     @Override
