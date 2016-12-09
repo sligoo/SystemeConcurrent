@@ -30,11 +30,14 @@ public class Eratosthene implements Application {
     if (initOk) {
       System.out.println("Nombres premiers :");
       for (int i = 2; i <= this.k; i++) {
-        if (this.linda.tryTake(new Tuple("eratosthene", i)) == null) {
+        if (this.linda.tryRead(new Tuple("eratosthene", i, false)) == null) {
           System.out.print("| " + i + " ");
 
-          for (int j = 2*i; j <= this.k; j += i) {
-            this.linda.write(new Tuple("eratosthene", j));
+          if (this.linda.tryRead(new Tuple("eratosthene", i, true)) == null) {
+            for (int j = 2 * i; j <= this.k; j += i) {
+              this.linda.write(new Tuple("eratosthene", j, false));
+            }
+            this.linda.write(new Tuple("eratosthene", i, true));
           }
         }
       }
