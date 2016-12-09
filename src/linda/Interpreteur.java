@@ -1,5 +1,6 @@
 package linda;
 
+import linda.centralized_applications.eratosthene.Eratosthene;
 import linda.centralized_applications.whiteboard.Whiteboard;
 import linda.centralized_applications.Application;
 import linda.shm.CentralizedLinda;
@@ -22,6 +23,7 @@ public class Interpreteur {
 
     applications = new ArrayList<>();
     applications.add(new Whiteboard(linda));
+    applications.add(new Eratosthene(linda));
 
     waitCommand();
   }
