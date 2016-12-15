@@ -34,8 +34,9 @@ public class TestsElementairesCentralized {
     linda.write(tupleWritten);
     Tuple tupleRead = linda.tryRead(new Tuple(String.class, Integer.class,
             Integer.class, Boolean.class));
+
     if (tupleRead != null)
-      Assert.assertTrue("Read tuple should match 'coucou'|5|3|false",
+      Assert.assertTrue("Read tuple should match ['coucou'|5|3|false]",
               tupleRead.matches(tupleWritten));
     else
       Assert.fail("Read tuple shouldn't be null");
@@ -45,8 +46,9 @@ public class TestsElementairesCentralized {
     linda.write(tupleWritten);
     tupleRead = linda.tryRead(new Tuple(new Tuple(String.class, Integer.class), String.class,
             String.class, Boolean.class));
+
     if (tupleRead != null)
-      Assert.assertTrue("Read tuple should match ['shittyFlute'|3456]|'troubalourds'|'japan7'|true",
+      Assert.assertTrue("Read tuple should match [['shittyFlute'|3456]|'troubalourds'|'japan7'|true]",
               tupleRead.matches(tupleWritten));
     else
       Assert.fail("Read tuple shouldn't be null");
@@ -61,8 +63,9 @@ public class TestsElementairesCentralized {
             "japan7", false);
     linda.write(tupleWritten);
     tupleRead = linda.tryRead(new Tuple(Tuple.class, "troubalourds", "japan7", false));
+
     if (tupleRead != null)
-      Assert.assertTrue("Read tuple should match ['fluteShitty'|3564]|'troubalourds'|'japan7'|false",
+      Assert.assertTrue("Read tuple should match [['fluteShitty'|3564]|'troubalourds'|'japan7'|false]",
               tupleRead.matches(tupleWritten));
     else
       Assert.fail("Read tuple shouldn't be null");
