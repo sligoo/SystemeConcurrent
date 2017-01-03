@@ -12,19 +12,19 @@ import java.util.List;
 public class Semaphore {
 
     private CentralizedLinda linda;
-    private String sema;
+    private String id;
 
-    public Semaphore(CentralizedLinda linda, String sema){
+    public Semaphore(CentralizedLinda linda, String id){
         this.linda = linda;
-        this.sema = sema;
-        this.linda.write(new Tuple(sema));
+        this.id = id;
+        this.linda.write(new Tuple(id));
     }
 
     public void P(){
-        this.linda.take(new Tuple(sema));
+        this.linda.take(new Tuple(id));
     }
 
     public void V(){
-        this.linda.write(new Tuple(sema));
+        this.linda.write(new Tuple(id));
     }
 }
