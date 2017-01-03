@@ -25,7 +25,7 @@ public class WhiteboardControls extends Panel implements ItemListener {
     /**
      ** The constructor.
      **
-     ** @param target - the whiteboard panel
+     ** @param _target  - the whiteboard panel
      */
     public WhiteboardControls(Panel _target) {
         
@@ -41,21 +41,13 @@ public class WhiteboardControls extends Panel implements ItemListener {
         eraseAllButton = new Button();
         eraseAllButton.setLabel(ERASEALL_LABEL);
         eraseAllButton.addActionListener(
-                new ActionListener() {
-                    public void actionPerformed(ActionEvent e) {
-                        target.eraseAll();
-                    }
-                });
+                e -> target.eraseAll());
         pLine1.add(eraseAllButton);
         
         exitButton = new Button();
         exitButton.setLabel(EXIT_LABEL);
         exitButton.addActionListener(
-                new ActionListener() {
-                    public void actionPerformed(ActionEvent e) {
-                        target.exitcmd();
-                    }
-                });
+                e -> target.exitcmd());
         pLine1.add(exitButton);
 
         pLine1.setBackground(Color.lightGray);

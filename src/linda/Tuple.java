@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.StringTokenizer;
@@ -21,9 +22,7 @@ public class Tuple extends LinkedList<Serializable> implements Serializable {
      * new Tuple(4, Integer.class, "foo".getclass(), Boolean.class)  -> [ 4 ?Integer ?String ?Boolean ]
      */
     public Tuple(Serializable... components) {
-        for (Serializable c : components) {
-            this.add(c);
-        }
+        Collections.addAll(this, components);
     }
 
     private static boolean matches(Serializable thiscomponent, Serializable templatecomponent) {
@@ -106,13 +105,13 @@ public class Tuple extends LinkedList<Serializable> implements Serializable {
         sb.append("[");
         for (Object o : this) {
             if (o instanceof Class) {
-                sb.append(" ?" + ((Class<?>)o).getName());
+                sb.append(" ?").append(((Class<?>) o).getName());
             } else if (o instanceof String) {
-                sb.append(" \"" + o + "\"");
+                sb.append(" \"").append(o).append("\"");
             } else if (o instanceof Character) {
-                sb.append(" '" + o + "'");
+                sb.append(" '").append(o).append("'");
             } else {
-                sb.append(" " + o.toString());
+                sb.append(" ").append(o.toString());
             }
         }
         sb.append(" ]");

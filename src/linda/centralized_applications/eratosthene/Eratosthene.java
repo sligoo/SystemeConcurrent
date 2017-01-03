@@ -5,7 +5,8 @@ import linda.centralized_applications.Application;
 import linda.shm.CentralizedLinda;
 
 /**
- * Created by rhiobet on 09/12/16.
+ * Project: SystemesConcurrents
+ * Created by Pierre and Sacha on 09/12/16.
  */
 public class Eratosthene implements Application {
 
@@ -16,6 +17,7 @@ public class Eratosthene implements Application {
     this.linda = linda;
   }
 
+  
   @Override
   public void run(String[] args) {
     boolean initOk = false;

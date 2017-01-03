@@ -11,7 +11,8 @@ import java.util.List;
 import java.util.Scanner;
 
 /**
- * Created by rhiobet on 08/12/16.
+ * Project: SystemesConcurrents
+ * Created by Pierre and Sacha on 08/12/16.
  */
 public class Interpreteur {
 
