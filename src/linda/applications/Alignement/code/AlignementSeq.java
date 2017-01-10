@@ -11,6 +11,7 @@ import linda.*;
 //---------------------------------------------------------------------------------------
 public class AlignementSeq {
     static int NBPROC = 4;
+    static int CHUNKSIZE = 100; // granularite de la bdd
 
     static int similitude(char [] s, char [] t) {
         int [][] tableSimilitude = new int [s.length][t.length];
@@ -171,33 +172,46 @@ public class AlignementSeq {
         l.write(new Tuple("cible",cible.lireSéquence(),
                 cible.afficher(),cible.lireTailleSeq()));
 
-        //déposer les séquences dans l'espace de tuples
-        while (it.hasNext()) {
-            courant = it.next();
-            nbSeq++;
-            l.write(new Tuple("BD",courant.lireSéquence(),courant.afficher()));
-        }
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(NBPROC);
 
         //chercher la meilleure similitude
         tCible = l.take(new Tuple("cible", String.class, String.class, Integer.class));
 
-        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(NBPROC);
-        for (int i = 0 ; i < nbSeq ; i++) {
-            Task task = new Task(l, tCible);
-            Future<Tuple> result = executor.submit(task);
-            results.add(result);
-        }
-        for (Future<Tuple> r : results) {
-            try {
-                int futureResult = (int) r.get().get(0);
-                if (futureResult > résultat) {
-                    résultat = futureResult;
-                    tRes = (Tuple) r.get().get(1);
+        while (it.hasNext()) {
+            //remplir l'espace de tuples
+            while (nbSeq < CHUNKSIZE) {
+                courant = it.next();
+                nbSeq++;
+                l.write(new Tuple("BD",courant.lireSéquence(),courant.afficher()));
+            }
+
+            //lancer le calcul de similitudes
+            for (int i = 0 ; i < nbSeq ; i++) {
+                Task task = new Task(l, tCible);
+                Future<Tuple> result = executor.submit(task);
+                results.add(result);
+                nbSeq--;
+            }
+
+            //traitement des resultats, on recupere le max "local" (de la chunk)
+            for (Future<Tuple> r : results) {
+                try {
+                    int futureResult = (int) r.get().get(0);
+
+                    if (futureResult > résultat) {
+                        résultat = futureResult;
+                        tRes = (Tuple) r.get().get(1);
+                    }
+
+                    results.clear(); //pour eviter d'avoir toute la bd en memoire
+
+                } catch(Exception e) {
+                    e.printStackTrace();
                 }
-            } catch(Exception e) {
-                e.printStackTrace();
             }
         }
+
+        executor.shutdown();
 
         System.out.println("cible : "+tCible.get(2));
         System.out.println("résultat ("+résultat+"/ "+
