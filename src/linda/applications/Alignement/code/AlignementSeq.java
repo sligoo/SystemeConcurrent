@@ -1,10 +1,16 @@
-//v0   3/1/17 (PM)
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
+
 import linda.*;
 
 //---------------------------------------------------------------------------------------
 public class AlignementSeq {
+    static int NBPROC = 4;
 
     static int similitude(char [] s, char [] t) {
         int [][] tableSimilitude = new int [s.length][t.length];
@@ -15,7 +21,7 @@ public class AlignementSeq {
         tableSimilitude[0][0] = 0;
         //colonne 0
         for (int i=1 ; i<s.length ; i++) {
-            tableSimilitude[i][0]=tableSimilitude[i-1][0]+Sequence.suppression(s[i]);
+            tableSimilitude[i][0]=tableSimilitude[i-1][0]+ Sequence.suppression(s[i]);
         }
         //ligne 0
         for (int j=1 ; j<t.length ; j++) {
@@ -115,6 +121,8 @@ public class AlignementSeq {
         Tuple tCourant = null;
         Tuple tCible = null;
         Tuple tRes = null;
+        int nbSeq = 0;
+        List<Future<Tuple>> results = new ArrayList<>();
 
         //déposer la cible dans l'espace de tuples
         l.write(new Tuple("cible",cible.lireSéquence(),
@@ -123,11 +131,34 @@ public class AlignementSeq {
         //déposer les séquences dans l'espace de tuples
         while (it.hasNext()) {
             courant = it.next();
+            nbSeq++;
             l.write(new Tuple("BD",courant.lireSéquence(),courant.afficher()));
         }
 
         //chercher la meilleure similitude
         tCible = l.take(new Tuple("cible", String.class, String.class, Integer.class));
+        //*
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(NBPROC);
+        for (int i = 0 ; i < nbSeq ; i++) {
+            Task task = new Task(l, tCible);
+            Future<Tuple> result = executor.submit(task);
+            results.add(result);
+        }
+        executor.shutdown();
+        for (Future<Tuple> r : results) {
+            try {
+                if ((int) r.get().get(0) > résultat) {
+                    résultat = (int) r.get().get(0);
+                    tRes = (Tuple) r.get().get(1);
+                }
+            } catch(Exception e) {
+
+            }
+        }
+        //*/
+
+
+        /*
         tCourant = l.tryTake(new Tuple("BD",String.class,String.class));
         while (tCourant != null) {
             score = similitude(((String)tCourant.get(1)).toCharArray(),
@@ -138,7 +169,7 @@ public class AlignementSeq {
             }
             tCourant = l.tryTake(new Tuple("BD",String.class,String.class));
         }
-
+        //*/
         System.out.println("cible : "+tCible.get(2));
         System.out.println("résultat ("+résultat+"/ "+
                            100*résultat/(((Integer)tCible.get(3))*
