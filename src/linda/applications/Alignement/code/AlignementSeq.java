@@ -180,7 +180,7 @@ public class AlignementSeq {
 
         while (it.hasNext()) {
             //remplir l'espace de tuples
-            while (nbSeq < CHUNKSIZE) {
+            while (nbSeq < CHUNKSIZE && it.hasNext()) {
                 courant = it.next();
                 nbSeq++;
                 l.write(new Tuple("BD",courant.lireSéquence(),courant.afficher()));
@@ -203,13 +203,11 @@ public class AlignementSeq {
                         résultat = futureResult;
                         tRes = (Tuple) r.get().get(1);
                     }
-
-                    results.clear(); //pour eviter d'avoir toute la bd en memoire
-
                 } catch(Exception e) {
                     e.printStackTrace();
                 }
             }
+            results.clear(); //pour eviter d'avoir toute la bd en memoire
         }
 
         executor.shutdown();
