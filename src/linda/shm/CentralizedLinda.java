@@ -39,6 +39,10 @@ public class CentralizedLinda implements Linda {
             Tuple tuple = t.deepclone();
             this.tuples.add(tuple);
             this.lastTupleWritten = tuple;
+
+            // Call any valid registered callbacks
+            this.checkCallbacks(t);
+
             // Signals waiting reads/takes that an new tuple has been received
             synchronized (this) {
                 notifyAll();
@@ -46,9 +50,6 @@ public class CentralizedLinda implements Linda {
         } finally {
             this.tuplesLock.unlock();
         }
-
-        // Check registered callbacks to call any valid ones
-        this.checkCallbacks(t);
     }
 
     @Override
