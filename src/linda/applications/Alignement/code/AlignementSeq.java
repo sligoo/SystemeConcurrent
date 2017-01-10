@@ -24,9 +24,10 @@ public class AlignementSeq {
         //remplissage ligne par ligne
         for (int i=1 ; i<s.length ; i++) {
             for (int j=1 ; j<t.length ; j++) {
-                tableSimilitude[i][j]=Math.max(tableSimilitude[i-1][j]+Sequence.suppression(s[i]),
-                                               Math.max(tableSimilitude[i][j-1]+Sequence.insertion(t[j]),
-                                                        tableSimilitude[i-1][j-1]+Sequence.correspondance(s[i],t[j])));
+                tableSimilitude[i][j]=Math.max(
+                        tableSimilitude[i-1][j]+Sequence.suppression(s[i]),
+                        Math.max(tableSimilitude[i][j-1]+Sequence.insertion(t[j]),
+                            tableSimilitude[i-1][j-1]+Sequence.correspondance(s[i],t[j])));
             }
         }
         // résultat (minimal : on pourrait aussi donner le chemin et les transformations,
@@ -59,13 +60,13 @@ public class AlignementSeq {
         résultat = AlignementSeq.AMono(BDS,cible,0);
         fin = System.nanoTime();
         System.out.println("test mémoire monoactivité : durée = "+ (fin-départ) /1_000+
-        												"µs -> résultat : " + résultat);
+                                "µs -> résultat : " + résultat);
                            
         départ = System.nanoTime();
         résultat = AlignementSeq.AMonoLinda(BDS,cible,0,linda);
         fin = System.nanoTime();
         System.out.println("test linda monoactivité : durée = "+ (fin-départ) /1_000+
-                										"µs -> résultat : " + résultat);
+                                "µs -> résultat : " + résultat);
     }
 
     static int AMono(BDSequences BD,BDSequences BDcibles,int position) {
@@ -79,7 +80,8 @@ public class AlignementSeq {
 
         while (it.hasNext()) {
             courant = it.next();
-            score = similitude(courant.lireSéquence().toCharArray(),cible.lireSéquence().toCharArray());
+            score = similitude(courant.lireSéquence().toCharArray(),
+                                cible.lireSéquence().toCharArray());
             if (score > résultat) {
                 res = courant;
                 résultat = score ;
@@ -87,7 +89,9 @@ public class AlignementSeq {
         }
         System.out.println("cible : "+cible.afficher());
         System.out.println("résultat ("+résultat+"/ "+
-                           100*résultat/(cible.lireTailleSeq()*Sequence.correspondance('A','A'))+"%): "+res.afficher());
+                100*résultat/(cible.lireTailleSeq()*
+                    Sequence.correspondance('A','A'))+
+                "%): "+res.afficher());
         return résultat;
     }
 
@@ -113,7 +117,8 @@ public class AlignementSeq {
         Tuple tRes = null;
 
         //déposer la cible dans l'espace de tuples
-        l.write(new Tuple("cible",cible.lireSéquence(),cible.afficher(),cible.lireTailleSeq()));
+        l.write(new Tuple("cible",cible.lireSéquence(),
+                            cible.afficher(),cible.lireTailleSeq()));
 
         //déposer les séquences dans l'espace de tuples
         while (it.hasNext()) {
@@ -136,8 +141,9 @@ public class AlignementSeq {
 
         System.out.println("cible : "+tCible.get(2));
         System.out.println("résultat ("+résultat+"/ "+
-                           100*résultat/(((Integer)tCible.get(3))*Sequence.correspondance('A','A'))
-                           +"%): "+tRes.get(2));
+                           100*résultat/(((Integer)tCible.get(3))*
+                               Sequence.correspondance('A','A'))+
+                           "%): "+tRes.get(2));
         return résultat;
     }
 }
