@@ -16,7 +16,7 @@ public class LindaServerImpl extends UnicastRemoteObject implements LindaServer 
 
   private Linda linda;
 
-  LindaServerImpl() throws RemoteException {
+  public LindaServerImpl() throws RemoteException {
     super();
     this.linda = new CentralizedLinda();
   }
