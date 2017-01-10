@@ -28,12 +28,16 @@ public class TestsElementairesServer {
     private final int PORT = 4000;
     private final String URI = "//localhost:" + PORT + "/LindaServer";
     private LindaServer server;
+    private static boolean registryCreated = false;
 
     @Before
     public void initializeServer() {
         try {
             server = new LindaServerImpl();
-            LocateRegistry.createRegistry(PORT);
+            if(!registryCreated) {
+                registryCreated = true;
+                LocateRegistry.createRegistry(PORT);
+            }
             Naming.rebind(URI, server);
         } catch (RemoteException | MalformedURLException e) {
             e.printStackTrace();
@@ -41,14 +45,8 @@ public class TestsElementairesServer {
     }
 
     public void restartServer() {
-        shutdownServer();
-        LindaServerImpl server = null;
         try {
             server = new LindaServerImpl();
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
-        try {
             Naming.rebind(URI, server);
         } catch (RemoteException e) {
             e.printStackTrace();
@@ -73,23 +71,24 @@ public class TestsElementairesServer {
 
         for(Method m : methods)
         {
-            LindaClient client = new LindaClient(URI);
-            TestsElementairesCentralized test = new TestsElementairesCentralized(client);
-
-            if (m.getName().startsWith("test")) {
+            if (m.getName().startsWith("test") && m.getName() != "testEvents" && !m.getName().contains("Lock")) {
                 try {
                     restartServer();
+                    LindaClient client = new LindaClient(URI);
+                    TestsElementairesCentralized test = new TestsElementairesCentralized(client);
                     System.out.println(m.getName());
                     m.invoke(test);
                 } catch (IllegalAccessException e) {
                     e.printStackTrace();
                 } catch (InvocationTargetException e) {
                     e.printStackTrace();
-                } finally {
-                    shutdownServer();
                 }
             }
         }
+    }
+
+    @Test
+    public void test2() {
 
     }
 
