@@ -10,6 +10,7 @@ import java.rmi.server.UnicastRemoteObject;
  * Created by rhiobet on 10/01/17.
  */
 public class CallbackRemoteImpl extends UnicastRemoteObject implements CallbackRemote {
+    public static final long serialVersionUID = 1L;
 
   private Callback callback;
 

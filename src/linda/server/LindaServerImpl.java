@@ -13,10 +13,11 @@ import java.util.Collection;
  * Created by rhiobet on 09/01/17.
  */
 public class LindaServerImpl extends UnicastRemoteObject implements LindaServer {
+    public static final long serialVersionUID = 1L;
 
   private Linda linda;
 
-  LindaServerImpl() throws RemoteException {
+  public LindaServerImpl() throws RemoteException {
     super();
     this.linda = new CentralizedLinda();
   }
