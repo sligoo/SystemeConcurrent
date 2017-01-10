@@ -73,6 +73,12 @@ public class AlignementSeq {
         fin = System.nanoTime();
         System.out.println("test linda monoactivité : durée = "+ (fin-départ) /1_000+
                                 "µs -> résultat : " + résultat);
+
+        départ = System.nanoTime();
+        résultat = AlignementSeq.AMultiLinda(BDS,cible,0,linda);
+        fin = System.nanoTime();
+        System.out.println("test linda multiactivité : durée = "+ (fin-départ) /1_000+
+                "µs -> résultat : " + résultat);
     }
 
     static int AMono(BDSequences BD,BDSequences BDcibles,int position) {
@@ -114,15 +120,12 @@ public class AlignementSeq {
 
         int score=0;
         int résultat=0;
-        Sequence res = null;
         Sequence courant = null;
         Sequence cible = BDcibles.lire(position);
         Iterator<Sequence> it = BD.itérateur();
         Tuple tCourant = null;
         Tuple tCible = null;
         Tuple tRes = null;
-        int nbSeq = 0;
-        List<Future<Tuple>> results = new ArrayList<>();
 
         //déposer la cible dans l'espace de tuples
         l.write(new Tuple("cible",cible.lireSéquence(),
@@ -131,34 +134,11 @@ public class AlignementSeq {
         //déposer les séquences dans l'espace de tuples
         while (it.hasNext()) {
             courant = it.next();
-            nbSeq++;
             l.write(new Tuple("BD",courant.lireSéquence(),courant.afficher()));
         }
 
         //chercher la meilleure similitude
         tCible = l.take(new Tuple("cible", String.class, String.class, Integer.class));
-        //*
-        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(NBPROC);
-        for (int i = 0 ; i < nbSeq ; i++) {
-            Task task = new Task(l, tCible);
-            Future<Tuple> result = executor.submit(task);
-            results.add(result);
-        }
-        executor.shutdown();
-        for (Future<Tuple> r : results) {
-            try {
-                if ((int) r.get().get(0) > résultat) {
-                    résultat = (int) r.get().get(0);
-                    tRes = (Tuple) r.get().get(1);
-                }
-            } catch(Exception e) {
-
-            }
-        }
-        //*/
-
-
-        /*
         tCourant = l.tryTake(new Tuple("BD",String.class,String.class));
         while (tCourant != null) {
             score = similitude(((String)tCourant.get(1)).toCharArray(),
@@ -169,12 +149,60 @@ public class AlignementSeq {
             }
             tCourant = l.tryTake(new Tuple("BD",String.class,String.class));
         }
-        //*/
         System.out.println("cible : "+tCible.get(2));
         System.out.println("résultat ("+résultat+"/ "+
                            100*résultat/(((Integer)tCible.get(3))*
                                Sequence.correspondance('A','A'))+
                            "%): "+tRes.get(2));
+        return résultat;
+    }
+
+    static int AMultiLinda(BDSequences BD,BDSequences BDcibles,int position,Linda l) {
+        int résultat=0;
+        Sequence courant = null;
+        Sequence cible = BDcibles.lire(position);
+        Iterator<Sequence> it = BD.itérateur();
+        Tuple tCible = null;
+        Tuple tRes = null;
+        int nbSeq = 0;
+        List<Future<Tuple>> results = new ArrayList<>();
+
+        //déposer la cible dans l'espace de tuples
+        l.write(new Tuple("cible",cible.lireSéquence(),
+                cible.afficher(),cible.lireTailleSeq()));
+
+        //déposer les séquences dans l'espace de tuples
+        while (it.hasNext()) {
+            courant = it.next();
+            nbSeq++;
+            l.write(new Tuple("BD",courant.lireSéquence(),courant.afficher()));
+        }
+
+        //chercher la meilleure similitude
+        tCible = l.take(new Tuple("cible", String.class, String.class, Integer.class));
+
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(NBPROC);
+        for (int i = 0 ; i < nbSeq ; i++) {
+            Task task = new Task(l, tCible);
+            Future<Tuple> result = executor.submit(task);
+            results.add(result);
+        }
+        for (Future<Tuple> r : results) {
+            try {
+                if ((int) r.get().get(0) > résultat) {
+                    résultat = (int) r.get().get(0);
+                    tRes = (Tuple) r.get().get(1);
+                }
+            } catch(Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        System.out.println("cible : "+tCible.get(2));
+        System.out.println("résultat ("+résultat+"/ "+
+                100*résultat/(((Integer)tCible.get(3))*
+                        Sequence.correspondance('A','A'))+
+                "%): "+tRes.get(2));
         return résultat;
     }
 }
