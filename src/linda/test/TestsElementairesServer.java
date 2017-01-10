@@ -1,12 +1,16 @@
 package linda.test;
 
 import linda.Linda;
+import linda.Tuple;
 import linda.server.LindaClient;
 import linda.server.LindaServer;
 import linda.server.LindaServerImpl;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -18,6 +22,7 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.lang.Runnable;
 
 /**
  * Project: SysConc
@@ -87,9 +92,46 @@ public class TestsElementairesServer {
         }
     }
 
-    @Test
-    public void test2() {
+    private class MultiClientTester implements Runnable {
+        private Linda client;
+        private String task;
+        private Tuple template;
 
+        MultiClientTester(String URI, String task, Tuple template) {
+            super();
+            this.client = new LindaClient(URI);
+            this.task = task;
+            this.template = template;
+        }
+
+        public void run() {
+            switch (this.task) {
+                case "write":
+                    this.client.write(this.template);
+                    break;
+                case "take":
+                    this.client.take(this.template);
+                    break;
+                case "read":
+                    this.client.read(this.template);
+                    break;
+            }
+        }
+    }
+
+    @Test
+    public void testMultiClient() {
+        Thread writeTester = new Thread(new MultiClientTester(URI, "write", new Tuple(0)));
+        Thread readTester = new Thread(new MultiClientTester(URI, "read", new Tuple(0)));
+
+        readTester.start();
+        assertEquals(Thread.State.WAITING, readTester.getState());
+
+        writeTester.start();
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException e) {}
+        assertEquals(Thread.State.RUNNABLE, readTester.getState());
     }
 
     public static void main(String[] args) {
