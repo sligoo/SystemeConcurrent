@@ -189,8 +189,9 @@ public class AlignementSeq {
         }
         for (Future<Tuple> r : results) {
             try {
-                if ((int) r.get().get(0) > résultat) {
-                    résultat = (int) r.get().get(0);
+                int futureResult = (int) r.get().get(0);
+                if (futureResult > résultat) {
+                    résultat = futureResult;
                     tRes = (Tuple) r.get().get(1);
                 }
             } catch(Exception e) {
