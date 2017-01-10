@@ -4,16 +4,12 @@ import linda.Callback;
 import linda.Linda;
 import linda.Tuple;
 
-import java.util.Collection;
-import java.util.stream.Collectors;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
-//import javax.management.lock.Monitor;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 /** Shared memory implementation of Linda. */
 public class CentralizedLinda implements Linda {
@@ -22,12 +18,11 @@ public class CentralizedLinda implements Linda {
     private Lock tuplesLock;
     private Lock callbacksLock;
     private List<CallbackRef> callbacks;
-    private Tuple lastTupleWritten;
 
     public CentralizedLinda() {
-        this.tuples = new ArrayList<Tuple>();
+        this.tuples = new ArrayList<>();
         this.tuplesLock = new ReentrantLock();
-        this.callbacks = new ArrayList<CallbackRef>();
+        this.callbacks = new ArrayList<>();
         this.callbacksLock = new ReentrantLock();
     }
 
@@ -38,11 +33,6 @@ public class CentralizedLinda implements Linda {
             this.tuplesLock.lock();
             Tuple tuple = t.deepclone();
             this.tuples.add(tuple);
-            this.lastTupleWritten = tuple;
-
-            // Call any valid registered callbacks
-            this.checkCallbacks(t);
-
             // Signals waiting reads/takes that an new tuple has been received
             synchronized (this) {
                 notifyAll();
@@ -50,49 +40,43 @@ public class CentralizedLinda implements Linda {
         } finally {
             this.tuplesLock.unlock();
         }
+
+        // Check registered callbacks to call any valid ones
+        this.checkCallbacks(t);
     }
 
     @Override
     public Tuple take(Tuple template) {
+        boolean found = false;
         Tuple result = null;
 
-        // Iterates once through stored tuples, then checks new ones as they
-        // are written
-
-        // Mutual exclusion for iterating through stored tuples
-        try {
-            this.tuplesLock.lock();
-            for (Tuple t : this.tuples) {
-                if (t.matches(template)) {
-                    result = t;
-                    this.tuples.remove(t);
-                    // We're returning the first match found
-                    break;
-                }
-            }
-        } finally {
-            this.tuplesLock.unlock();
-        }
-
-        while (result == null) {
-            // If template not found, wait for another tuple to be added
-            // note: the lock must be released before this point if a new
-            // tuple is to be stored
-            try {
-                synchronized (this) {
-                    wait();
-                }
-            } catch (InterruptedException e) {
-            }
-
+        while (!found) {
+            // Mutual exclusion for iterating through stored tuples
             try {
                 this.tuplesLock.lock();
-                if (this.lastTupleWritten.matches(template)) {
-                    result = this.lastTupleWritten;
-                    this.tuples.remove(template);
+                for (Tuple t : this.tuples) {
+                    if (t.matches(template)) {
+                        result = t;
+                        this.tuples.remove(t);
+                        found = true;
+                        // We're returning the first match found
+                        break;
+                    }
                 }
             } finally {
                 this.tuplesLock.unlock();
+            }
+
+            if (result == null) {
+                // If template not found, wait for another tuple to be added
+                // note: the lock must be released before this point if a new
+                // tuple is to be stored
+                try {
+                    synchronized (this) {
+                        wait();
+                    }
+                } catch (InterruptedException ignored) {
+                }
             }
         }
         return result;
@@ -100,43 +84,35 @@ public class CentralizedLinda implements Linda {
 
     @Override
     public Tuple read(Tuple template) {
+        boolean found = false;
         Tuple result = null;
 
-        // Iterates once through stored tuples, then checks new ones as they
-        // are written
-
-        // Mutual exclusion for iterating through stored tuples
-        this.tuplesLock.lock();
-        try {
-            for (Tuple t : this.tuples) {
-                if (t.matches(template)) {
-                    result = t.deepclone();
-                    // We're returning the first match found
-                    break;
-                }
-            }
-        } finally {
-            this.tuplesLock.unlock();
-        }
-
-        // If template not found, wait for another tuple to be added
-        // note: the lock must be released before this point if a new
-        // tuple is to be stored
-        while (result == null) {
+        while (!found) {
+            // Mutual exclusion for iterating through stored tuples
+            this.tuplesLock.lock();
             try {
-                synchronized (this) {
-                    wait();
-                }
-            } catch (InterruptedException e) {}
-
-            // A new tuple has been written, check it
-            try {
-                this.tuplesLock.lock();
-                if (this.lastTupleWritten.matches(template)) {
-                    result = this.lastTupleWritten;
+                for (Tuple t : this.tuples) {
+                    if (t.matches(template)) {
+                        result = t.deepclone();
+                        found = true;
+                        // We're returning the first match found
+                        break;
+                    }
                 }
             } finally {
                 this.tuplesLock.unlock();
+            }
+
+            if (result == null) {
+                // If template not found, wait for another tuple to be added
+                // note: the lock must be released before this point if a new
+                // tuple is to be stored
+                try {
+                    synchronized (this) {
+                        wait();
+                    }
+                } catch (InterruptedException ignored) {
+                }
             }
         }
         return result;
@@ -185,7 +161,7 @@ public class CentralizedLinda implements Linda {
 
     @Override
     public Collection<Tuple> takeAll(Tuple template) {
-        Collection<Tuple> result = new ArrayList<Tuple>();
+        Collection<Tuple> result;
 
         // Mutual exclusion for iterating through stored tuples
         try {
@@ -205,7 +181,7 @@ public class CentralizedLinda implements Linda {
 
     @Override
     public Collection<Tuple> readAll(Tuple template) {
-        Collection<Tuple> result = new ArrayList<Tuple>();
+        Collection<Tuple> result;
 
         // Mutual exclusion for iterating through stored tuples
         try {
