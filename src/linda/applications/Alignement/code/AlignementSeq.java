@@ -181,12 +181,16 @@ public class AlignementSeq {
         //chercher la meilleure similitude
         tCible = l.take(new Tuple("cible", String.class, String.class, Integer.class));
 
+        //Création de la pool de theads
         ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(NBPROC);
+        //Création de la liste de résultats, des tâches, et lancement des threads
         for (int i = 0 ; i < nbSeq ; i++) {
             Task task = new Task(l, tCible);
             Future<Tuple> result = executor.submit(task);
+            //result de type Tuple(score, Tuple("BD",seq,printable seq))
             results.add(result);
         }
+        //Trouver le score maximum dans la liste des résultats
         for (Future<Tuple> r : results) {
             try {
                 if ((int) r.get().get(0) > résultat) {
@@ -197,6 +201,7 @@ public class AlignementSeq {
                 e.printStackTrace();
             }
         }
+        executor.shutdown();
 
         System.out.println("cible : "+tCible.get(2));
         System.out.println("résultat ("+résultat+"/ "+
