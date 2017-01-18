@@ -4,6 +4,7 @@ import linda.Callback;
 import linda.Linda;
 import linda.Tuple;
 
+import java.rmi.AlreadyBoundException;
 import java.rmi.NotBoundException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.Naming;
@@ -14,6 +15,7 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.StringJoiner;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -24,15 +26,16 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class LindaMultiServer extends UnicastRemoteObject implements LindaServer, Runnable {
     public static final long serialVersionUID = 1L;
 
+    private String name;
     private List<Tuple> tuplespace;
     private List<Callback> callbacks;
-    private List<LindaServer> serverRegistry;
+    private RemoteList<String> serverRegistry;
     private BlockingQueue<Task> tasks;
 
     /**
      * Multi-Server implementation of Linda
      * @param namingURI the URI for the Naming server containing the Multi-Server registry
-     * @param PORT
+     * @param PORT int
      * @throws RemoteException
      */
     public LindaMultiServer (String namingURI, int PORT) throws RemoteException {
@@ -43,11 +46,22 @@ public class LindaMultiServer extends UnicastRemoteObject implements LindaServer
 
         LocateRegistry.createRegistry(PORT);
         try {
-            // Add ourselves to the registry
-            List<LindaServer> serverRegistry = (List<LindaServer>) Naming.lookup(namingURI + "/ServerRegistry");
-            serverRegistry.add(this);
+            // Get the server registry, create it if nonexistent
+            this.serverRegistry = (RemoteList<String>) Naming.lookup(namingURI + "/ServerRegistry");
+            if (this.serverRegistry == null) {
+                this.serverRegistry = new RemoteList<>();
+                Naming.rebind("/ServerRegistry", this.serverRegistry);
+            }
+
+            // Add ourselves to the registry & Naming server
+            this.name = "Server" + this.serverRegistry.size();
+            Naming.bind(namingURI + "/" + this.name, this);
+            this.serverRegistry.add(this.name);
         } catch (MalformedURLException | NotBoundException e) {
             e.printStackTrace();
+        } catch (AlreadyBoundException e) {
+            e.printStackTrace();
+            System.exit(1);
         }
     }
 
