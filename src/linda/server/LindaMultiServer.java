@@ -3,6 +3,7 @@ package linda.server;
 import linda.Callback;
 import linda.Linda;
 import linda.Tuple;
+import linda.shm.CentralizedLinda;
 
 import java.rmi.AlreadyBoundException;
 import java.rmi.NotBoundException;
@@ -15,20 +16,21 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.StringJoiner;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 
 /**
+ * Multi-Server Linda implementation
  * Created by jayjader on 1/18/17.
  */
-public class LindaMultiServer extends UnicastRemoteObject implements LindaServer, Runnable {
+public class LindaMultiServer extends UnicastRemoteObject implements LindaServer {
     public static final long serialVersionUID = 1L;
 
     private String name;
-    private List<Tuple> tuplespace;
-    private List<Callback> callbacks;
+    private String namingURI;
+    private Linda linda;
+    private  List<Worker> workers;
     private RemoteList<String> serverRegistry;
     private BlockingQueue<Task> tasks;
 
@@ -40,28 +42,72 @@ public class LindaMultiServer extends UnicastRemoteObject implements LindaServer
      */
     public LindaMultiServer (String namingURI, int PORT) throws RemoteException {
         super();
-        this.tuplespace = new ArrayList<>();
-        this.callbacks = new ArrayList<>();
+        this.namingURI = namingURI;
+        this.linda = new CentralizedLinda();
         this.tasks = new LinkedBlockingQueue<>();
 
         LocateRegistry.createRegistry(PORT);
         try {
             // Get the server registry, create it if nonexistent
-            this.serverRegistry = (RemoteList<String>) Naming.lookup(namingURI + "/ServerRegistry");
+            this.serverRegistry = (RemoteList<String>) Naming.lookup(this.namingURI + "/ServerRegistry");
             if (this.serverRegistry == null) {
                 this.serverRegistry = new RemoteList<>();
-                Naming.rebind("/ServerRegistry", this.serverRegistry);
+                Naming.rebind(this.namingURI + "/ServerRegistry", this.serverRegistry);
             }
 
             // Add ourselves to the registry & Naming server
             this.name = "Server" + this.serverRegistry.size();
-            Naming.bind(namingURI + "/" + this.name, this);
-            this.serverRegistry.add(this.name);
+            Naming.bind(this.namingURI + "/" + this.name, this);
+            this.serverRegistry.add(namingURI + "/" +  this.name);
         } catch (MalformedURLException | NotBoundException e) {
             e.printStackTrace();
         } catch (AlreadyBoundException e) {
             e.printStackTrace();
             System.exit(1);
+        }
+
+        // Launch main "overseer" thread which consumes tasks, spawns workers, and directly handles WRITEs
+        Thread overseer = new Thread(() -> {
+            while (true) {
+                // Consume task. If the queue is empty wait for a new task to appear
+                Task currentTask = this.tasks.poll();
+
+                if (currentTask.getInstruction() == Task.Instruction.WRITE) {
+                    // Writes are handled by the main thread
+                    this.linda.write(currentTask.getTuple());
+                    this.notifyServersTupleWritten();
+                } else {
+                    // Spawn worker
+                    Worker w = new Worker(currentTask, linda);
+                    w.start();
+
+                    this.workers.add(worker);
+                }
+            }
+        });
+        overseer.start();
+    }
+
+    /**
+     * Notifies the other servers a Tuple has been added to the tuplespace
+     */
+    private void notifyServersTupleWritten() {
+        // Fetch size once
+        int size = 0;
+        try {
+            size = this.serverRegistry.size();
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+
+        // Notify the other servers
+        for (int i = 0; i < size; i++) {
+            try {
+                LindaMultiServer server = (LindaMultiServer) Naming.lookup(this.serverRegistry.get(i));
+                server.notifyTupleWritten();
+            } catch (NotBoundException | MalformedURLException | RemoteException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -101,7 +147,7 @@ public class LindaMultiServer extends UnicastRemoteObject implements LindaServer
             e.printStackTrace();
         }
 
-        return task.result();
+        return task.getResult();
     }
 
     @Override
@@ -139,8 +185,12 @@ public class LindaMultiServer extends UnicastRemoteObject implements LindaServer
 
     }
 
-    @Override
-    public void run() {
-
+    /**
+     * Notifies all the workers that a tuple has been written
+     */
+    public void notifyTupleWritten() {
+        for (Worker w : this.workers) {
+            w.notify();
+        }
     }
 }

@@ -10,26 +10,34 @@ import javax.print.DocFlavor;
  *
  * Created by jayjader on 1/18/17.
  */
-public class Task {
+class Task {
 
     private final Instruction instruction;
     private final Tuple tuple;
+    private Tuple result;
 
-    public Task(Instruction instr, Tuple t) {
+    Task(Instruction instr, Tuple t) {
         this.instruction = instr;
         this.tuple = t;
     }
 
-    public void setResult() {
-
+    void setResult(Tuple t) {
+        this.result = t;
     }
 
-    // TODO
-    public Tuple result() {
-        return null;
+    Tuple getResult() {
+        return this.result;
     }
 
-    public enum Instruction {
+    Instruction getInstruction() {
+        return this.instruction;
+    }
+
+    Tuple getTuple() {
+        return this.tuple;
+    }
+
+    enum Instruction {
         WRITE,
         READ,
         TAKE,
