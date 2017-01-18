@@ -113,7 +113,7 @@ public class LindaMultiServer extends UnicastRemoteObject implements LindaServer
 
     /** Creates a Task and adds it to the task queue
      */
-    public Task createTask(Task.Instruction instruction, Tuple template) {
+    private Task createTask(Task.Instruction instruction, Tuple template) {
         Task task = new Task(instruction, template);
         try {
             this.tasks.put(task);
