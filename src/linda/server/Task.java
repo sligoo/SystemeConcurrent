@@ -2,8 +2,6 @@ package linda.server;
 
 import linda.Tuple;
 
-import javax.print.DocFlavor;
-
 /**
  * A class used as a wrapper for a Linda server "instruction" & accompanying tuple.
  * Is given to worker threads for execution.
