@@ -81,7 +81,7 @@ public class LindaMultiServer extends UnicastRemoteObject implements LindaServer
                     Worker w = new Worker(currentTask, linda);
                     w.start();
 
-                    this.workers.add(worker);
+                    this.workers.add(w);
                 }
             }
         });
