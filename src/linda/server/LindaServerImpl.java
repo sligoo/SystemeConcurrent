@@ -60,7 +60,7 @@ public class LindaServerImpl extends UnicastRemoteObject implements LindaServer 
   @Override
   public void eventRegister(Linda.eventMode mode, Linda.eventTiming timing, Tuple template, CallbackRemote callback)
           throws RemoteException {
-    this.linda.eventRegister(mode, timing, template, callback.getCallback());
+    this.linda.eventRegister(mode, timing, template, new CallbackServer(callback));
   }
 
   @Override
