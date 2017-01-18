@@ -40,6 +40,8 @@ class Task {
         READ,
         TAKE,
         TRYREAD,
-        TRYTAKE
+        TRYTAKE,
+        READALL,
+        TAKEALL
     }
 }
