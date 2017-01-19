@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import static linda.server.Task.Instruction.*;
+
 
 /**
  * Multi-Server Linda implementation
@@ -72,7 +74,7 @@ public class LindaMultiServer extends UnicastRemoteObject implements LindaServer
                 // Consume task. If the queue is empty wait for a new task to appear
                 Task currentTask = this.tasks.poll();
 
-                if (currentTask.getInstruction() == Task.Instruction.WRITE) {
+                if (currentTask.getInstruction() == WRITE) {
                     // Writes are handled by the main thread
                     this.linda.write(currentTask.getTuple());
                     this.notifyServersTupleWritten();
