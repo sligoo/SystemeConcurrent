@@ -7,6 +7,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import linda.*;
+import linda.shm.MultiThreadLinda;
 
 //---------------------------------------------------------------------------------------
 public class AlignementSeq {
@@ -76,7 +77,7 @@ public class AlignementSeq {
                                 "µs -> résultat : " + résultat);
 
         départ = System.nanoTime();
-        résultat = AlignementSeq.AMultiLinda(BDS,cible,0,linda);
+        résultat = AlignementSeq.AMultiLinda(BDS,cible,0,new MultiThreadLinda(5));
         fin = System.nanoTime();
         System.out.println("test linda multiactivité : durée = "+ (fin-départ) /1_000+
                 "µs -> résultat : " + résultat);

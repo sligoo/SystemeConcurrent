@@ -79,7 +79,7 @@ public class TestsElementairesServer {
         for(Method m : methods)
         {
             if (m.getName().startsWith("test") && !m.getName().contains("Lock")) {
-                try {
+                /*try {
                     restartServer();
                     LindaClient client = new LindaClient(URI);
                     TestsElementairesCentralized test = new TestsElementairesCentralized(client);
@@ -89,7 +89,7 @@ public class TestsElementairesServer {
                     e.printStackTrace();
                 } catch (InvocationTargetException e) {
                     e.printStackTrace();
-                }
+                }*/
             }
         }
     }

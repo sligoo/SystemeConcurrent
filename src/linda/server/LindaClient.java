@@ -39,6 +39,7 @@ public class LindaClient implements Linda {
 
     @Override
     public Tuple take(Tuple template) {
+        System.out.println("take s" + template);
         try {
             return this.server.take(template);
         } catch (RemoteException e) {

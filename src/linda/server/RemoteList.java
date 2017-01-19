@@ -1,31 +1,13 @@
 package linda.server;
 
+import java.rmi.Remote;
 import java.rmi.RemoteException;
-import java.rmi.server.UnicastRemoteObject;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
- * Created by lucien on 18/01/17.
+ * Created by lucien on 19/01/17.
  */
-
-public class RemoteList<T> extends UnicastRemoteObject {
-    private List<T> list;
-
-    public RemoteList() throws RemoteException
-    {
-        list = new ArrayList<>();
-    }
-
-    public void add(T obj) throws RemoteException {
-        list.add(obj);
-    }
-
-    public T get(int i) throws RemoteException {
-        return list.get(i);
-    }
-
-    public int size() throws RemoteException {
-        return list.size();
-    }
+public interface RemoteList<T> extends Remote {
+    void add(T obj) throws RemoteException;
+    T get(int i) throws RemoteException;
+    int size() throws RemoteException;
 }

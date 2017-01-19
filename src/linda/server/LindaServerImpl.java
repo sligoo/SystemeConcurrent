@@ -4,6 +4,7 @@ import linda.Callback;
 import linda.Linda;
 import linda.Tuple;
 import linda.shm.CentralizedLinda;
+import linda.shm.MultiThreadLinda;
 
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
@@ -19,7 +20,7 @@ public class LindaServerImpl extends UnicastRemoteObject implements LindaServer 
 
   public LindaServerImpl() throws RemoteException {
     super();
-    this.linda = new CentralizedLinda();
+    this.linda = new MultiThreadLinda(4);
   }
 
   @Override
