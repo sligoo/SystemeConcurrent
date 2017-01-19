@@ -12,6 +12,7 @@ import java.net.MalformedURLException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -59,6 +60,8 @@ public class LindaMultiServer extends UnicastRemoteObject implements LindaServer
             this.name = "Server" + this.serverRegistry.size();
             Naming.bind(this.namingURI + "/" + this.name, this);
             this.serverRegistry.add(namingURI + "/" +  this.name);
+
+            this.workers = new ArrayList<>();
         } catch (MalformedURLException | NotBoundException e) {
             e.printStackTrace();
         } catch (AlreadyBoundException e) {
