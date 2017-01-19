@@ -229,10 +229,11 @@ public class LindaMultiServerImpl extends UnicastRemoteObject implements LindaMu
      */
     @Override
     public void notifyTupleWritten() throws RemoteException {
-        for (Worker w : this.workers) {
-            synchronized (w) {
+        for (Worker w: workers){
+            synchronized (w){
                 w.notify();
             }
+
         }
     }
 

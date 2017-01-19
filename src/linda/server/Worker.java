@@ -29,6 +29,7 @@ public class Worker extends Thread {
     public void start() {
         switch (task.getInstruction()) {
             case READ:
+                System.out.println("OK");
                 while(task.getResult() == null) {
                     Tuple result = readFromAllServers();
                     checkResult(result);
@@ -78,14 +79,14 @@ public class Worker extends Thread {
     }
 
     private Tuple readFromAllServers() {
-        System.out.println("recherche " + task.getTuple());
+        System.out.println("readAllServers " + task.getTuple());
         RemoteList<String> serverRegistry = null;
         int size = 0;
         Tuple result = linda.tryRead(task.getTuple());
 
         // If tuple not in memory, try read from all servers
         if(result == null) {
-            System.out.println(task.getTuple() + " pas dans ");
+            System.out.println(task.getTuple() + " pas dans local");
             // get serverRegistry
             try {
                 serverRegistry = (RemoteList<String>) Naming.lookup(uriServerRegistry);
@@ -93,12 +94,13 @@ public class Worker extends Thread {
             } catch (NotBoundException | RemoteException | MalformedURLException e) {
                 e.printStackTrace();
             }
-
             // try read on all servers
             for (int i = 0; i < size; i++) {
                 try {
+                    System.out.println("read " + task.getTuple() + " sur serveur " + i);
                     LindaMultiServer server = (LindaMultiServer) Naming.lookup(serverRegistry.get(i));
                     result = server.tryRead(task.getTuple());
+                    System.out.println("result = " + result);
                 } catch (NotBoundException | MalformedURLException | RemoteException e) {
                     e.printStackTrace();
                 }
