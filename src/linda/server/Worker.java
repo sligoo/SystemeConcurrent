@@ -60,6 +60,9 @@ public class Worker extends Thread {
             default:
                 break;
         }
+        synchronized (task) {
+            task.notify();
+        }
     }
 
     private void checkResult(Tuple result) {
@@ -75,12 +78,14 @@ public class Worker extends Thread {
     }
 
     private Tuple readFromAllServers() {
+        System.out.println("recherche " + task.getTuple());
         RemoteList<String> serverRegistry = null;
         int size = 0;
         Tuple result = linda.tryRead(task.getTuple());
 
         // If tuple not in memory, try read from all servers
         if(result == null) {
+            System.out.println(task.getTuple() + " pas dans ");
             // get serverRegistry
             try {
                 serverRegistry = (RemoteList<String>) Naming.lookup(uriServerRegistry);

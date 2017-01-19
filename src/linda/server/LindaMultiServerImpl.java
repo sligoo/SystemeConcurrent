@@ -94,6 +94,7 @@ public class LindaMultiServerImpl extends UnicastRemoteObject implements LindaMu
             }
         });
         overseer.start();
+        System.out.println("Server " + name + " created");
     }
 
     /**
@@ -131,7 +132,9 @@ public class LindaMultiServerImpl extends UnicastRemoteObject implements LindaMu
 
         synchronized (task){
             try {
+                System.out.println(task.getTuple() + " waiting");
                 task.wait();
+                System.out.println(task.getTuple() + " done");
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -153,6 +156,8 @@ public class LindaMultiServerImpl extends UnicastRemoteObject implements LindaMu
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+        System.out.print(t);
+        System.out.println(" written to " + name);
     }
 
     /**
@@ -225,7 +230,9 @@ public class LindaMultiServerImpl extends UnicastRemoteObject implements LindaMu
     @Override
     public void notifyTupleWritten() throws RemoteException {
         for (Worker w : this.workers) {
-            w.notify();
+            synchronized (w) {
+                w.notify();
+            }
         }
     }
 
@@ -255,12 +262,12 @@ public class LindaMultiServerImpl extends UnicastRemoteObject implements LindaMu
             client3.write(new Tuple(0, 3));
 
             // Test on client's server
-            System.out.println(client0.take(new Tuple(0, 0)));
-            System.out.println(client1.read(new Tuple(0, 1)));
+            System.out.println("result client0 : " + client0.take(new Tuple(0, 0)));
+            System.out.println("result client1 : " + client1.read(new Tuple(0, 1)));
 
             // Test propagation
-            System.out.println(client2.read(new Tuple(0, 3)));
-            System.out.println(client3.take(new Tuple(0, 2)));
+            System.out.println("result client2 : " + client2.read(new Tuple(0, 3)));
+            System.out.println("result client3 : " + client3.take(new Tuple(0, 2)));
 
 
         } catch (RemoteException e) {
