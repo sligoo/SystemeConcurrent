@@ -166,22 +166,26 @@ public class LindaMultiServer extends UnicastRemoteObject implements LindaServer
 
     @Override
     public Tuple tryTake(Tuple template) throws RemoteException {
-        return null;
+        Task task = this.createTask(TRYTAKE, template);
+        return task.getResult();
     }
 
     @Override
     public Tuple tryRead(Tuple template) throws RemoteException {
-        return null;
+        Task task = this.createTask(TRYREAD, template);
+        return task.getResult();
     }
 
     @Override
     public Collection<Tuple> takeAll(Tuple template) throws RemoteException {
-        return null;
+        Task task = this.createTask(TAKEALL, template);
+        return task.getResultAll();
     }
 
     @Override
     public Collection<Tuple> readAll(Tuple template) throws RemoteException {
-        return null;
+        Task task = this.createTask(READALL, template);
+        return task.getResultAll();
     }
 
     @Override
