@@ -146,7 +146,12 @@ public class LindaMultiServer extends UnicastRemoteObject implements LindaServer
      */
     @Override
     public void write(Tuple t) throws RemoteException {
-        Task task = this.createTask(WRITE, t);
+        Task task = new Task(WRITE, t);
+        try {
+            this.tasks.put(task);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
