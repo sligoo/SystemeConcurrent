@@ -130,10 +130,12 @@ public class LindaMultiServer extends UnicastRemoteObject implements LindaServer
             e.printStackTrace();
         }
 
-        try {
-            task.wait();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        synchronized (task){
+            try {
+                task.wait();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
 
         return task;
