@@ -1,6 +1,5 @@
 package linda.server;
 
-import linda.Callback;
 import linda.Linda;
 import linda.Tuple;
 import linda.shm.CentralizedLinda;
@@ -13,7 +12,6 @@ import java.net.MalformedURLException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -156,8 +154,8 @@ public class LindaMultiServer extends UnicastRemoteObject implements LindaServer
 
     /**
      * Adds a blocking task to read a Tuple template from the Linda
-     * @param template
-     * @return
+     * @param template Tuple
+     * @return Tuple
      * @throws RemoteException
      */
     @Override
@@ -166,6 +164,12 @@ public class LindaMultiServer extends UnicastRemoteObject implements LindaServer
         return task.getResult();
     }
 
+    /**
+     * Adds a non-blocking task to take a Tuple template from the Linda
+     * @param template Tuple
+     * @return Tuple
+     * @throws RemoteException
+     */
     @Override
     public Tuple tryTake(Tuple template) throws RemoteException {
         Task task = this.createTask(TRYTAKE, template);
@@ -192,18 +196,18 @@ public class LindaMultiServer extends UnicastRemoteObject implements LindaServer
 
     @Override
     public void eventRegister(Linda.eventMode mode, Linda.eventTiming timing, Tuple template, CallbackRemote callback) throws RemoteException {
-
+        this.linda.eventRegister(mode, timing, template, callback.getCallback());
     }
 
     @Override
     public void debug(String prefix) throws RemoteException {
-
+        this.linda.debug(prefix);
     }
 
     /**
      * Notifies all the workers that a tuple has been written
      */
-    public void notifyTupleWritten() {
+    private void notifyTupleWritten() {
         for (Worker w : this.workers) {
             w.notify();
         }
