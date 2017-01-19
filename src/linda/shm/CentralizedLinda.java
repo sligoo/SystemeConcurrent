@@ -3,10 +3,9 @@ package linda.shm;
 import linda.Callback;
 import linda.Linda;
 import linda.Tuple;
+import linda.SynchronousCallback;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
@@ -18,11 +17,13 @@ public class CentralizedLinda implements Linda {
     private Lock tuplesLock;
     private Lock callbacksLock;
     private List<CallbackRef> callbacks;
+    private Collection<SynchronousCallback> synchronousCallbacks;
 
     public CentralizedLinda() {
         this.tuples = new ArrayList<>();
         this.tuplesLock = new ReentrantLock();
         this.callbacks = new ArrayList<>();
+        this.synchronousCallbacks = new ArrayList<>();
         this.callbacksLock = new ReentrantLock();
     }
 
@@ -34,8 +35,8 @@ public class CentralizedLinda implements Linda {
             Tuple tuple = t.deepclone();
             this.tuples.add(tuple);
             // Signals waiting reads/takes that an new tuple has been received
-            synchronized (this) {
-                notifyAll();
+            for (SynchronousCallback callback : this.synchronousCallbacks) {
+                callback.call(t);
             }
         } finally {
             this.tuplesLock.unlock();
@@ -72,9 +73,12 @@ public class CentralizedLinda implements Linda {
                 // note: the lock must be released before this point if a new
                 // tuple is to be stored
                 try {
-                    synchronized (this) {
-                        wait();
+                    SynchronousCallback callback = new SynchronousCallback(template);
+                    this.synchronousCallbacks.add(callback);
+                    synchronized (callback) {
+                        callback.wait();
                     }
+                    this.synchronousCallbacks.remove(callback);
                 } catch (InterruptedException ignored) {
                 }
             }
@@ -108,9 +112,12 @@ public class CentralizedLinda implements Linda {
                 // note: the lock must be released before this point if a new
                 // tuple is to be stored
                 try {
-                    synchronized (this) {
-                        wait();
+                    SynchronousCallback callback = new SynchronousCallback(template);
+                    this.synchronousCallbacks.add(callback);
+                    synchronized (callback) {
+                        callback.wait();
                     }
+                    this.synchronousCallbacks.remove(callback);
                 } catch (InterruptedException ignored) {
                 }
             }

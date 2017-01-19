@@ -4,6 +4,7 @@ import linda.AsynchronousCallback;
 import linda.Linda;
 import linda.Tuple;
 import linda.shm.CentralizedLinda;
+import linda.shm.MultiThreadLinda;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -22,11 +23,6 @@ public class TestsElementairesCentralized {
 
     private Linda linda;
     private int readImmediate, takeImmediate, readFuture, takeFuture;
-
-    public TestsElementairesCentralized(Linda linda) {
-        super();
-        this.linda = linda;
-    }
 
     @Before
     public void initialize() {
@@ -177,6 +173,8 @@ public class TestsElementairesCentralized {
         Assert.assertTrue("The tuple should be deep copied at write()", tupleRead.matches(tupleCopy));
         ((ArrayList<ArrayList<Integer>>) tupleRead.get(0)).get(0).add(45);
         tupleRead = linda.take(new Tuple(Object.class));
+        System.out.println(tupleRead.toString());
+        System.out.println(tupleCopy.toString());
         Assert.assertTrue("The tuple should be deep copied at read()", tupleRead.matches(tupleCopy));
     }
 
@@ -236,7 +234,7 @@ public class TestsElementairesCentralized {
 
         Tuple match = new Tuple(Integer.class, Integer.class, Object.class, Boolean.class);
         Collection<Tuple> read2 = linda.takeAll(match);
-        Assert.assertEquals("4 tuples should have been read", 2, read2.size());
+        Assert.assertEquals("2 tuples should have been read", 2, read2.size());
         Assert.assertTrue("The collection should contain tuples[3]", read2.contains(tuples[2]));
         Assert.assertTrue("The collection should contain tuples[4]", read2.contains(tuples[3]));
 
