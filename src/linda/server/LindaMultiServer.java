@@ -78,7 +78,7 @@ public class LindaMultiServer extends UnicastRemoteObject implements LindaServer
                     this.notifyServersTupleWritten();
                 } else {
                     // Spawn worker
-                    Worker w = new Worker(currentTask, linda);
+                    Worker w = new Worker(currentTask, linda, namingURI + "/ServerRegistry");
                     w.start();
 
                     this.workers.add(w);
@@ -111,30 +111,10 @@ public class LindaMultiServer extends UnicastRemoteObject implements LindaServer
         }
     }
 
-    /**
-     * Adds a task to write a Tuple t to the tuplespace
-     * @param t Tuple
-     * @throws RemoteException
+    /** Creates a Task and adds it to the task queue
      */
-    @Override
-    public void write(Tuple t) throws RemoteException {
-        Task task = new Task(Task.Instruction.WRITE, t);
-        try {
-            this.tasks.put(task);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Adds a blocking task to take a Tuple template from the tuplespace
-     * @param template Tuple
-     * @return Tuple
-     * @throws RemoteException
-     */
-    @Override
-    public Tuple take(Tuple template) throws RemoteException {
-        Task task = new Task(Task.Instruction.TAKE, template);
+    private Task createTask(Task.Instruction instruction, Tuple template) {
+        Task task = new Task(instruction, template);
         try {
             this.tasks.put(task);
         } catch (InterruptedException e) {
@@ -147,32 +127,65 @@ public class LindaMultiServer extends UnicastRemoteObject implements LindaServer
             e.printStackTrace();
         }
 
+        return task;
+    }
+
+    /**
+     * Adds a task to write a Tuple t to the Linda
+     * @param t Tuple
+     * @throws RemoteException
+     */
+    @Override
+    public void write(Tuple t) throws RemoteException {
+        Task task = this.createTask(WRITE, t);
+    }
+
+    /**
+     * Adds a blocking task to take a Tuple template from the Linda
+     * @param template Tuple
+     * @return Tuple
+     * @throws RemoteException
+     */
+    @Override
+    public Tuple take(Tuple template) throws RemoteException {
+        Task task = this.createTask(TAKE, template);
+        return task.getResult();
+    }
+
+    /**
+     * Adds a blocking task to read a Tuple template from the Linda
+     * @param template
+     * @return
+     * @throws RemoteException
+     */
+    @Override
+    public Tuple read(Tuple template) throws RemoteException {
+        Task task = this.createTask(READ, template);
         return task.getResult();
     }
 
     @Override
-    public Tuple read(Tuple template) throws RemoteException {
-        return null;
-    }
-
-    @Override
     public Tuple tryTake(Tuple template) throws RemoteException {
-        return null;
+        Task task = this.createTask(TRYTAKE, template);
+        return task.getResult();
     }
 
     @Override
     public Tuple tryRead(Tuple template) throws RemoteException {
-        return null;
+        Task task = this.createTask(TRYREAD, template);
+        return task.getResult();
     }
 
     @Override
     public Collection<Tuple> takeAll(Tuple template) throws RemoteException {
-        return null;
+        Task task = this.createTask(TAKEALL, template);
+        return task.getResultAll();
     }
 
     @Override
     public Collection<Tuple> readAll(Tuple template) throws RemoteException {
-        return null;
+        Task task = this.createTask(READALL, template);
+        return task.getResultAll();
     }
 
     @Override
