@@ -50,9 +50,11 @@ public class LindaMultiServer extends UnicastRemoteObject implements LindaServer
         LocateRegistry.createRegistry(PORT);
         try {
             // Get the server registry, create it if nonexistent
-            this.serverRegistry = (RemoteList<String>) Naming.lookup(this.namingURI + "/ServerRegistry");
-            if (this.serverRegistry == null) {
+            try {
+                this.serverRegistry = (RemoteList<String>) Naming.lookup(this.namingURI + "/ServerRegistry");
+            } catch (NotBoundException e) {
                 this.serverRegistry = new RemoteList<>();
+            } finally {
                 Naming.rebind(this.namingURI + "/ServerRegistry", this.serverRegistry);
             }
 
@@ -62,7 +64,7 @@ public class LindaMultiServer extends UnicastRemoteObject implements LindaServer
             this.serverRegistry.add(namingURI + "/" +  this.name);
 
             this.workers = new ArrayList<>();
-        } catch (MalformedURLException | NotBoundException e) {
+        } catch (MalformedURLException  e) {
             e.printStackTrace();
         } catch (AlreadyBoundException e) {
             e.printStackTrace();
@@ -213,6 +215,45 @@ public class LindaMultiServer extends UnicastRemoteObject implements LindaServer
     private void notifyTupleWritten() {
         for (Worker w : this.workers) {
             w.notify();
+        }
+    }
+
+    /**
+     * Test function.
+     * Initializes 2 servers & a client, tests some functions
+     */
+    public static void main(String args[]) {
+        int PORT = 5555;
+        try {
+            LocateRegistry.createRegistry(PORT);
+            String namingURI = "//localhost:" + PORT;
+
+            LindaMultiServer server0 = new LindaMultiServer(namingURI, 9090);
+            LindaMultiServer server1 = new LindaMultiServer(namingURI, 9091);
+            LindaMultiServer server2 = new LindaMultiServer(namingURI, 9092);
+            LindaMultiServer server3 = new LindaMultiServer(namingURI, 9093);
+
+            LindaClient client0 = new LindaClient(namingURI + "/Server0");
+            LindaClient client1 = new LindaClient(namingURI + "/Server1");
+            LindaClient client2 = new LindaClient(namingURI + "/Server2");
+            LindaClient client3 = new LindaClient(namingURI + "/Server3");
+
+            client0.write(new Tuple(0, 0));
+            client1.write(new Tuple(0, 1));
+            client2.write(new Tuple(0, 2));
+            client3.write(new Tuple(0, 3));
+
+            // Test on client's server
+            System.out.println(client0.take(new Tuple(0, 0)));
+            System.out.println(client1.read(new Tuple(0, 1)));
+
+            // Test propagation
+            System.out.println(client2.read(new Tuple(0, 3)));
+            System.out.println(client3.take(new Tuple(0, 2)));
+
+
+        } catch (RemoteException e) {
+            e.printStackTrace();
         }
     }
 }
