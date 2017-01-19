@@ -3,6 +3,7 @@ package linda.server;
 import linda.Tuple;
 
 import javax.print.DocFlavor;
+import java.util.Collection;
 
 /**
  * A class used as a wrapper for a Linda server "instruction" & accompanying tuple.
@@ -15,6 +16,7 @@ class Task {
     private final Instruction instruction;
     private final Tuple tuple;
     private Tuple result;
+    private Collection<Tuple> resultAll;
 
     Task(Instruction instr, Tuple t) {
         this.instruction = instr;
@@ -35,6 +37,14 @@ class Task {
 
     Tuple getTuple() {
         return this.tuple;
+    }
+
+    public Collection<Tuple> getResultAll() {
+        return resultAll;
+    }
+
+    public void setResultAll(Collection<Tuple> resultAll) {
+        this.resultAll = resultAll;
     }
 
     enum Instruction {
