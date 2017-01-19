@@ -53,8 +53,7 @@ public class LindaMultiServer extends UnicastRemoteObject implements LindaServer
             try {
                 this.serverRegistry = (RemoteList<String>) Naming.lookup(this.namingURI + "/ServerRegistry");
             } catch (NotBoundException e) {
-                this.serverRegistry = new RemoteList<>();
-            } finally {
+                this.serverRegistry = new RemoteListImpl<>();
                 Naming.rebind(this.namingURI + "/ServerRegistry", this.serverRegistry);
             }
 
@@ -75,7 +74,12 @@ public class LindaMultiServer extends UnicastRemoteObject implements LindaServer
         Thread overseer = new Thread(() -> {
             while (true) {
                 // Consume task. If the queue is empty wait for a new task to appear
-                Task currentTask = this.tasks.poll();
+                Task currentTask = null;
+                try {
+                    currentTask = this.tasks.take();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
 
                 if (currentTask.getInstruction() == WRITE) {
                     // Writes are handled by the main thread
